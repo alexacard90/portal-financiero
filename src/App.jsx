@@ -173,6 +173,9 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
                 <ShieldCheck className="w-8 h-8 text-indigo-300" />
                 <span>Broker Financiero</span>
               </div>
+              <div className="inline-block bg-indigo-900/50 text-indigo-100 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 mt-2 border border-indigo-400/30">
+                🤝 En alianza con SERFINANZA
+              </div>
               <h1 className="text-2xl font-bold mb-3">Gestión y Seguimiento de Créditos</h1>
               <p className="text-indigo-100 text-sm">
                 Carga tus documentos de forma segura y consulta en tiempo real el avance de tu solicitud bancaria.
