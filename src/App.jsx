@@ -45,6 +45,7 @@ export default function App() {
     name: "",
     email: "",
     password: "",
+    cedula: "",
     phone: "",
     creditType: "Libre Inversión",
     amount: ""
@@ -92,6 +93,7 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
     const newClient = {
       id: "C-" + Math.floor(100 + Math.random() * 900),
       name: regForm.name,
+      cedula: regForm.cedula,
       email: regForm.email.trim().toLowerCase(),
       password: regForm.password,
       phone: regForm.phone,
@@ -235,6 +237,24 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
                   onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                 />
+                <div className="grid grid-cols-2 gap-2">
+               <input
+                 type="text"
+                 required
+                 placeholder="No. de Cédula"
+                 value={regForm.cedula}
+                 onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value })}
+                 className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+               />
+               <input
+                 type="tel"
+                 required
+                 placeholder="No. de Celular"
+                 value={regForm.phone}
+                 onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                 className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+               />
+             </div>
                 <input
                   type="email"
                   required
@@ -442,6 +462,9 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
             <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">{activeClient.name}</h2>
+                <p className="text-sm font-semibold text-slate-700 mt-1">
+               Cédula: {activeClient.cedula} • Celular: {activeClient.phone}
+             </p>
                 <p className="text-xs text-slate-500">{activeClient.email} • Solicitud: {activeClient.amount}</p>
               </div>
               <div>
