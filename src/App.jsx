@@ -47,6 +47,7 @@ export default function App() {
     password: "",
     cedula: "",
     phone: "",
+    countryCode: "+57",
     creditType: "Libre Inversión",
     amount: ""
   });
@@ -96,7 +97,7 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
       cedula: regForm.cedula,
       email: regForm.email.trim().toLowerCase(),
       password: regForm.password,
-      phone: regForm.phone,
+      phone: regForm.countryCode + " " + regForm.phone,
       creditType: regForm.creditType,
       amount: regForm.amount,
       bank: "En asignación",
@@ -246,14 +247,24 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
                  onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value })}
                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
                />
-               <input
-                 type="tel"
-                 required
-                 placeholder="No. de Celular"
-                 value={regForm.phone}
-                 onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                 className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
-               />
+               <div className="flex gap-1">
+                 <select
+                   value={regForm.countryCode}
+                   onChange={(e) => setRegForm({ ...regForm, countryCode: e.target.value })}
+                   className="border border-slate-300 rounded-lg px-1 py-2 text-sm bg-white cursor-pointer"
+                 >
+                   <option value="+57">🇨🇴 +57</option>
+                   <option value="+1">🇺🇸 +1</option>
+                 </select>
+                 <input
+                   type="tel"
+                   required
+                   placeholder="Celular"
+                   value={regForm.phone}
+                   onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                   className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full"
+                 />
+               </div>
              </div>
                 <input
                   type="email"
