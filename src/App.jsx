@@ -163,6 +163,27 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
     setNewNotice("");
   };
 
+const downloadExcel = () => {
+    if (clients.length === 0) {
+      alert("No hay clientes para descargar.");
+      return;
+    }
+    let csv = "ID,Nombre,Cedula,Celular,Correo,Tipo Credito,Monto,Etapa\n";
+    clients.forEach(c => {
+      // Usamos comillas para evitar problemas con los signos pesos y espacios
+      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]}\n`;
+    });
+    
+    // Esto asegura que Excel lea bien las tildes y las eñes (formato UTF-8 con BOM)
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Base_Clientes_Broker.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -472,12 +493,20 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
           <ShieldCheck className="w-6 h-6 text-indigo-400" />
           <span>Panel Administrador — Broker Financiero</span>
         </div>
-        <button
-          onClick={() => setCurrentUser(null)}
-          className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1"
-        >
-          <LogOut className="w-4 h-4" /> Cerrar sesión
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={downloadExcel}
+            className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold shadow-sm"
+          >
+            📥 Descargar Base de Datos
+          </button>
+          <button
+            onClick={() => setCurrentUser(null)}
+            className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1"
+          >
+            <LogOut className="w-4 h-4" /> Cerrar sesión
+          </button>
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-6 grid md:grid-cols-3 gap-6">
