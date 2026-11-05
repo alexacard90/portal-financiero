@@ -103,7 +103,7 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
       bank: "En asignación",
       stage: 1,
       documents: [
-        { id: "d1", name: "Cédula de ciudadanía al 150%", status: "pendiente", fileName: "", feedback: "" },
+        { id: "d1", name: "Cédula de ciudadanía (legible por ambas caras)", status: "pendiente", fileName: "", feedback: "" },
         { id: "d2", name: "Extractos bancarios (últimos 3 meses)", status: "pendiente", fileName: "", feedback: "" },
         { id: "d3", name: "Certificación laboral o RUT", status: "pendiente", fileName: "", feedback: "" },
         { id: "d4", name: "Declaración de renta o nómina", status: "pendiente", fileName: "", feedback: "" }
@@ -176,10 +176,42 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
               <div className="inline-block bg-indigo-900/50 text-indigo-100 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 mt-2 border border-indigo-400/30">
                 🤝 En alianza con SERFINANZA
               </div>
-              <h1 className="text-2xl font-bold mb-3">Gestión y Seguimiento de Créditos</h1>
-              <p className="text-indigo-100 text-sm">
-                Carga tus documentos de forma segura y consulta en tiempo real el avance de tu solicitud bancaria.
-              </p>
+              <h1 className="text-2xl font-bold mb-3">¡Bienvenido a tu portal financiero!</h1>
+              
+              <div className="space-y-4 text-indigo-100 text-sm">
+                <p>
+                  Este es un formulario <strong>100% seguro y confidencial</strong>. Toda la información proporcionada está encriptada y será utilizada de manera exclusiva para la validación y análisis de tu crédito.
+                </p>
+
+                <div className="bg-amber-500/20 border border-amber-400/50 p-3 rounded-lg text-amber-100">
+                  <p className="font-bold text-amber-50 flex items-center gap-1">⚠️ ¡Aviso Importante!</p>
+                  <p className="text-xs mt-1">Guarda esta página o copia el enlace web en tus notas. Así podrás volver a ingresar en el futuro para revisar cómo avanza tu trámite.</p>
+                </div>
+
+                <div>
+                  <p className="font-bold text-white mb-2">Inicia tu solicitud de crédito en 3 pasos:</p>
+                  <ul className="space-y-2 text-xs">
+                    <li><strong>Paso 1:</strong> Selecciona <strong>"Nuevo Cliente"</strong> y diligencia tus datos básicos.</li>
+                    <li><strong>Paso 2:</strong> Elige el monto y crea tu contraseña (sin requisitos mínimos: usa números, letras o símbolos a tu gusto).</li>
+                    <li><strong>Paso 3:</strong> Ingresa a cargar tus documentos. Allí tendrás un botón de <strong>Soporte por WhatsApp</strong> para hablar con tu asesora.</li>
+                    <li><strong>Paso 4:</strong> Para volver a revisar tu estado otro día, selecciona <strong>"Iniciar Sesión"</strong> usando tu correo y tu clave.</li>
+                  </ul>
+                </div>
+
+                <div className="bg-indigo-800/50 p-3 rounded-lg text-xs space-y-2">
+                  <p><strong>Aplica para personas reportadas:</strong> Evaluamos tu caso incluso si tienes reportes negativos, siempre y cuando demuestres capacidad de pago y nivel de endeudamiento disponible.</p>
+                  <p className="font-bold text-white pt-1 border-t border-indigo-700/50 mt-2">Para agilizar tu estudio, ten a la mano (PDF o Foto):</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Cédula de ciudadanía original (legible).</li>
+                    <li>Extractos bancarios (últimos 3 meses).</li>
+                    <li>Certificación laboral o RUT.</li>
+                  </ul>
+                </div>
+
+                <p className="text-[10px] text-indigo-300 italic pt-2 leading-tight">
+                  *Al registrarte, autorizas el uso de tu información para el análisis crediticio. Conoce nuestra política de tratamiento de datos personales en: www.bancoserfinanza.com
+                </p>
+              </div>
             </div>
           </div>
 
