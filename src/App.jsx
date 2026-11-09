@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import {
   ShieldCheck,
   FileText,
@@ -18,6 +19,11 @@ import {
 // CONFIGURACIÓN REAL DE TU AMIGA (Modifica lo que está entre comillas)
 const BROKER_EMAIL = "solicitudes.credito.serfinanza@gmail.com"; 
 const BROKER_PHONE = "573138231893"; // Con código de país sin el +, ej: 57321...
+
+// CONFIGURACIÓN DE SUPABASE
+const supabaseUrl = "https://qmugawgqkxpadsqhyguc.supabase.co/rest/v1/";
+const supabaseKey = "https://qmugawgqkxpadsqhyguc.supabase.co/rest/v1/";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const INITIAL_CLIENTS = [];
 
@@ -117,19 +123,43 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
     setCurrentUser({ role: "client", id: newClient.id });
   };
 
-  const handleFileUpload = (clientId, docId, file) => {
+const handleFileUpload = async (clientId, docId, file) => {
     if (!file) return;
+
+    alert("Subiendo archivo, por favor espera unos segundos...");
+
+    const fileExt = file.name.split('.').pop();
+    // Crea un nombre único para que no se sobreescriban
+    const uniqueName = `${clientId}_${docId}_${Date.now()}.${fileExt}`;
+
+    // 1. Sube el archivo a la nube
+    const { data, error } = await supabase.storage
+      .from('documentos')
+      .upload(uniqueName, file);
+
+    if (error) {
+      alert("Hubo un error subiendo el archivo. Intenta de nuevo.");
+      return;
+    }
+
+    // 2. Obtiene el enlace público
+    const { data: urlData } = supabase.storage
+      .from('documentos')
+      .getPublicUrl(uniqueName);
+
+    // 3. Guarda el enlace en tu aplicación
     setClients((prev) =>
       prev.map((c) => {
         if (c.id !== clientId) return c;
         return {
           ...c,
           documents: c.documents.map((d) =>
-            d.id === docId ? { ...d, status: "cargado", fileName: file.name, feedback: "" } : d
+            d.id === docId ? { ...d, status: "cargado", fileName: file.name, fileUrl: urlData.publicUrl, feedback: "" } : d
           )
         };
       })
     );
+    alert("¡Archivo cargado con éxito!");
   };
 
   const updateClientStage = (clientId, newStage) => {
@@ -565,7 +595,16 @@ const downloadExcel = () => {
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{d.name}</p>
                     <p className="text-xs text-slate-500">
-                      Estado: <strong>{d.status.toUpperCase()}</strong> {d.fileName && `(${d.fileName})`}
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                   Estado: <strong>{d.status.toUpperCase()}</strong> 
+                   {d.fileUrl ? (
+                     <a href={d.fileUrl} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200">
+                       Abrir Documento
+                     </a>
+                   ) : (
+                     d.fileName && `(${d.fileName})`
+                   )}
+                 </p>
                     </p>
                   </div>
                   <div className="flex gap-2">
