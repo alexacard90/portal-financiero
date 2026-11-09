@@ -59,6 +59,22 @@ export default function App() {
   });
 
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [filterStage, setFilterStage] = useState(1);
+const [profileForm, setProfileForm] = useState({
+  activity: "Empleado", income: "", expenses: "", city: "", address: "", 
+  refPersonalName: "", refPersonalPhone: "", refFamilyName: "", refFamilyPhone: ""
+});
+
+const formatMoney = (val) => {
+  const num = val.replace(/\D/g, ""); // Borra letras, comas o espacios
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Pone el punto cada mil
+};
+
+const handleSaveProfile = (clientId, e) => {
+  e.preventDefault();
+  setClients(prev => prev.map(c => c.id === clientId ? { ...c, profileData: profileForm } : c));
+  alert("¡Datos financieros guardados con éxito!");
+};
   const [newNotice, setNewNotice] = useState("");
 
   useEffect(() => {
@@ -470,7 +486,58 @@ const downloadExcel = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+       {!client.profileData ? (
+         <form onSubmit={(e) => handleSaveProfile(client.id, e)} className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-200 mb-6 space-y-4">
+           <h3 className="font-bold text-indigo-800 text-lg border-b border-slate-100 pb-2">Paso 1: Completa tu perfil financiero</h3>
+           <div className="grid md:grid-cols-3 gap-4">
+             <div>
+               <label className="block text-xs font-bold text-slate-600 mb-1">Actividad Económica</label>
+               <select required value={profileForm.activity} onChange={(e) => setProfileForm({...profileForm, activity: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer">
+                 <option value="Empleado">Empleado</option>
+                 <option value="Independiente">Independiente</option>
+                 <option value="Pensionado">Pensionado</option>
+               </select>
+             </div>
+             <div>
+               <label className="block text-xs font-bold text-slate-600 mb-1">Ingresos Mensuales</label>
+               <input type="text" required value={profileForm.income} onChange={(e) => setProfileForm({...profileForm, income: formatMoney(e.target.value)})} placeholder="Ej. 2.500.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+             <div>
+               <label className="block text-xs font-bold text-slate-600 mb-1">Gastos Mensuales</label>
+               <input type="text" required value={profileForm.expenses} onChange={(e) => setProfileForm({...profileForm, expenses: formatMoney(e.target.value)})} placeholder="Ej. 1.200.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+             <div>
+               <label className="block text-xs font-bold text-slate-600 mb-1">Ciudad de Residencia</label>
+               <input type="text" required value={profileForm.city} onChange={(e) => setProfileForm({...profileForm, city: e.target.value})} placeholder="Ej. Bogotá" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+             <div className="md:col-span-2">
+               <label className="block text-xs font-bold text-slate-600 mb-1">Dirección Exacta</label>
+               <input type="text" required value={profileForm.address} onChange={(e) => setProfileForm({...profileForm, address: e.target.value})} placeholder="Dirección completa" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+           </div>
+
+           <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+             <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+               <h4 className="font-bold text-slate-700 text-sm">Referencia Personal</h4>
+               <input type="text" required value={profileForm.refPersonalName} onChange={(e) => setProfileForm({...profileForm, refPersonalName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+               <input type="tel" required value={profileForm.refPersonalPhone} onChange={(e) => setProfileForm({...profileForm, refPersonalPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+             <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+               <h4 className="font-bold text-slate-700 text-sm">Referencia Familiar</h4>
+               <input type="text" required value={profileForm.refFamilyName} onChange={(e) => setProfileForm({...profileForm, refFamilyName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+               <input type="tel" required value={profileForm.refFamilyPhone} onChange={(e) => setProfileForm({...profileForm, refFamilyPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+             </div>
+           </div>
+           <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl mt-4 shadow-sm transition-colors">Guardar Perfil Financiero</button>
+         </form>
+       ) : (
+         <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6 flex flex-wrap justify-between items-center gap-4 shadow-sm">
+           <p className="text-sm text-emerald-800 font-bold flex items-center gap-2">✅ Perfil financiero guardado. Ya puedes cargar tus documentos.</p>
+           <button type="button" onClick={() => setClients(prev => prev.map(c => c.id === client.id ? {...c, profileData: null} : c))} className="text-xs text-emerald-800 font-semibold bg-emerald-100 hover:bg-emerald-200 px-4 py-2 rounded-lg transition-colors">Editar mis datos</button>
+         </div>
+       )}
+
+       <div className="grid md:grid-cols-3 gap-6">
             <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-600" /> Documentos Requeridos
@@ -554,13 +621,24 @@ const downloadExcel = () => {
 
       <main className="max-w-6xl mx-auto p-6 grid md:grid-cols-3 gap-6">
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" /> Clientes ({clients.length})
-          </h3>
-          {clients.length === 0 && (
-             <p className="text-sm text-slate-500 p-2">Aún no hay clientes registrados.</p>
-          )}
-          {clients.map((c) => (
+          <div className="flex flex-col gap-2 mb-4">
+         <h3 className="font-bold text-slate-800 flex items-center gap-2">
+           <Users className="w-5 h-5 text-indigo-600" /> Funnel de Clientes
+         </h3>
+         <select 
+           value={filterStage} 
+           onChange={(e) => { setFilterStage(Number(e.target.value)); setSelectedClientId(null); }}
+           className="border border-indigo-300 bg-indigo-50 rounded-lg px-3 py-2 text-sm font-bold text-indigo-800 cursor-pointer shadow-sm outline-none"
+         >
+           {STAGES.map((s, i) => (
+             <option key={s} value={i + 1}>Etapa {i + 1}: {s} ({clients.filter(c => c.stage === i + 1).length} clientes)</option>
+           ))}
+         </select>
+       </div>
+       {clients.filter(c => c.stage === filterStage).length === 0 && (
+          <p className="text-sm text-slate-500 p-2 bg-slate-50 rounded-lg border border-slate-200">No hay clientes en esta etapa del embudo.</p>
+       )}
+       {clients.filter(c => c.stage === filterStage).map((c) => (
             <button
               key={c.id}
               onClick={() => setSelectedClientId(c.id)}
@@ -580,9 +658,25 @@ const downloadExcel = () => {
             <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">{activeClient.name}</h2>
-                <p className="text-sm font-semibold text-slate-700 mt-1">
-               Cédula: {activeClient.cedula} • Celular: {activeClient.phone}
-             </p>
+                <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
+               <span>Cédula: {activeClient.cedula}</span> • 
+               <span>Celular: {activeClient.phone}</span>
+               <a href={`https://wa.me/${activeClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1 shadow-sm transition-colors">
+                 <MessageCircle className="w-3.5 h-3.5" /> Contactar al WhatsApp
+               </a>
+             </div>
+
+             {activeClient.profileData && (
+               <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                 <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
+                 <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
+                 <p><strong>Ingresos:</strong> ${activeClient.profileData.income}</p>
+                 <p><strong>Gastos:</strong> ${activeClient.profileData.expenses}</p>
+                 <p className="col-span-2"><strong>Dirección:</strong> {activeClient.profileData.address}</p>
+                 <p className="col-span-2 text-indigo-700 border-t border-slate-200 pt-2"><strong>Ref. Personal:</strong> {activeClient.profileData.refPersonalName} — Tel: {activeClient.profileData.refPersonalPhone}</p>
+                 <p className="col-span-2 text-indigo-700"><strong>Ref. Familiar:</strong> {activeClient.profileData.refFamilyName} — Tel: {activeClient.profileData.refFamilyPhone}</p>
+               </div>
+             )}
                 <p className="text-xs text-slate-500">{activeClient.email} • Solicitud: {activeClient.amount}</p>
               </div>
               <div>
