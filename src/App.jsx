@@ -724,7 +724,7 @@ const downloadExcel = () => {
         </div>
 
         {activeClient && (
-              <div className="w-full md:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto">
+              <div className="w-full flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto">
                 <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Detalles del Cliente</h3>
                 
                 <div className="mb-4">
