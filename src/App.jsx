@@ -129,7 +129,14 @@ const handleFileUpload = async (clientId, docId, file) => {
     alert("⏳ Subiendo archivo a la bóveda segura, espera un momento...");
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop().toLowerCase();
+
+    // Bloqueo de seguridad para evitar virus y formatos raros
+    const allowedExts = ["pdf", "jpg", "jpeg", "png", "heic", "doc", "docx"];
+    if (!allowedExts.includes(fileExt)) {
+      alert("❌ Formato no permitido. Por seguridad, solo aceptamos PDF, Imágenes o documentos de Word.");
+      return;
+    }
       // Esto limpia el nombre del archivo: quita tildes, ñ y espacios para que Supabase no lo bloquee
       const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '');
       const uniqueName = `${clientId}_${docId}_${Date.now()}_${safeName}.${fileExt}`;
@@ -491,14 +498,15 @@ const downloadExcel = () => {
                         <AlertCircle className="w-3.5 h-3.5" /> Corregir
                       </span>
                     )}
-                    <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
-                      <Upload className="w-3.5 h-3.5" /> Subir PDF
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(client.id, docItem.id, e.target.files[0])}
-                      />
-                    </label>
+                    <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1 text-center">
+                   <Upload className="w-3.5 h-3.5" /> Cargar PDF / Imagen
+                   <input
+                     type="file"
+                     accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx"
+                     className="hidden"
+                     onChange={(e) => handleFileUpload(client.id, docItem.id, e.target.files[0])}
+                   />
+                 </label>
                   </div>
                 </div>
               ))}
