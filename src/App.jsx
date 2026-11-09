@@ -22,7 +22,7 @@ const BROKER_PHONE = "573138231893"; // Con código de país sin el +, ej: 57321
 
 // CONFIGURACIÓN DE SUPABASE
 const supabaseUrl = "https://qmugawgqkxpadsqhyguc.supabase.co/rest/v1/";
-const supabaseKey = "https://qmugawgqkxpadsqhyguc.supabase.co/rest/v1/";
+const supabaseKey = "sb_publishable_YMbtpu8L5oJu7n26pLJcJg_UtSIwrkX";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const INITIAL_CLIENTS = [];
