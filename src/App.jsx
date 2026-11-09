@@ -724,20 +724,36 @@ const downloadExcel = () => {
         </div>
 
         {activeClient && (
-          <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">{activeClient.name}</h2>
-                <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
-               <span>Cédula: {activeClient.cedula}</span> • 
-               <span>Celular: {activeClient.phone}</span>
-               <a href={`https://wa.me/${activeClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1 shadow-sm transition-colors">
-                 <MessageCircle className="w-3.5 h-3.5" /> Contactar al WhatsApp
-               </a>
-             </div>
+              <div className="w-full md:w-1/2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto">
+                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Detalles del Cliente</h3>
+                
+                <div className="mb-4">
+                  <p className="text-lg font-bold text-indigo-900">{activeClient.name}</p>
+                  <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
+                    <span>Cédula: {activeClient.cedula}</span> • 
+                    <span>Celular: {activeClient.phone}</span>
+                    <a href={`https://wa.me/${activeClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1 shadow-sm transition-colors">
+                      Contactar al WhatsApp
+                    </a>
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">{activeClient.email} • Solicitud: ${activeClient.amount}</p>
+                </div>
 
-             {activeClient.profileData && (
-                  <div className="mt-4 space-y-4">
+                <div className="mb-4">
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Cambiar Etapa del Trámite:</label>
+                  <select
+                    value={activeClient.stage}
+                    onChange={(e) => updateClientStage(activeClient.id, e.target.value)}
+                    className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-indigo-700 w-full"
+                  >
+                    {STAGES.map((s, i) => (
+                      <option key={s} value={i + 1}>Etapa {i + 1}: {s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {activeClient.profileData ? (
+                  <div className="space-y-4">
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                       <p className="col-span-2 text-sm text-indigo-800 font-bold border-b border-slate-200 pb-1 mb-1">Perfil Financiero</p>
                       <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
@@ -764,107 +780,78 @@ const downloadExcel = () => {
                     </div>
 
                     <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                      <h4 className="font-bold text-indigo-900 text-sm mb-3">Documentos Cargados</h4>
-                      <div className="space-y-3">
+                      <h4 className="font-bold text-indigo-900 text-sm mb-4">Revisión de Documentos</h4>
+                      <div className="space-y-4">
                         {getRequiredDocs(activeClient.profileData.activity).map(reqDoc => {
                           const docData = activeClient.documents.find(d => d.id === reqDoc.id);
                           const files = docData?.uploadedFiles || [];
+                          const status = docData?.status || "pendiente";
+                          
                           return (
-                            <div key={reqDoc.id} className="bg-white p-3 rounded-lg border border-slate-200">
-                               <p className="text-xs font-bold text-slate-700 mb-2">{reqDoc.title}</p>
+                            <div key={reqDoc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                               <p className="text-sm font-bold text-slate-800 mb-1">{reqDoc.title}</p>
+                               <p className="text-xs text-slate-500 mb-3">
+                                 Estado: <span className={`font-bold uppercase ${status === 'aprobado' ? 'text-emerald-600' : status === 'correccion' ? 'text-rose-600' : 'text-amber-600'}`}>{status}</span>
+                               </p>
+                               
                                {files.length === 0 ? (
-                                 <p className="text-xs text-red-500 font-semibold">Pendiente por cargar</p>
+                                 <p className="text-xs text-rose-500 font-semibold mb-3">Pendiente por cargar</p>
                                ) : (
-                                 <div className="flex flex-wrap gap-2">
+                                 <div className="flex flex-wrap gap-2 mb-4">
                                    {files.map((f, i) => (
-                                     <a key={i} href={f.url} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold hover:bg-indigo-200 shadow-sm flex items-center gap-1">
-                                       📄 Ver {i + 1}
+                                     <a key={i} href={f.url} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-200 shadow-sm flex items-center gap-1">
+                                       📄 Ver Archivo {i + 1}
                                      </a>
                                    ))}
                                  </div>
                                )}
+                               
+                               <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                                 <button 
+                                   onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "aprobado")}
+                                   className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded text-xs font-bold transition-colors"
+                                 >
+                                   ✅ Aprobar
+                                 </button>
+                                 <button 
+                                   onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "correccion")}
+                                   className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded text-xs font-bold transition-colors"
+                                 >
+                                   ❌ Pedir Corrección
+                                 </button>
+                               </div>
                             </div>
                           )
                         })}
                       </div>
                     </div>
                   </div>
-                )}
-                <p className="text-xs text-slate-500">{activeClient.email} • Solicitud: {activeClient.amount}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Cambiar Etapa del Trámite:</label>
-                <select
-                  value={activeClient.stage}
-                  onChange={(e) => updateClientStage(activeClient.id, e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-indigo-700"
-                >
-                  {STAGES.map((s, i) => (
-                    <option key={s} value={i + 1}>
-                      Paso {i + 1}: {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-bold text-sm text-slate-700">Revisión de Documentos del Cliente</h4>
-              {activeClient.documents.map((d) => (
-                <div key={d.id} className="p-3 rounded-xl border border-slate-200 flex flex-wrap justify-between items-center gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{d.name}</p>
-                    <p className="text-xs text-slate-500">
-                    <p className="text-xs text-slate-500 flex items-center gap-2">
-                   Estado: <strong>{d.status.toUpperCase()}</strong> 
-                   {d.fileUrl ? (
-                     <a href={d.fileUrl} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200">
-                       Abrir Documento
-                     </a>
-                   ) : (
-                     d.fileName && `(${d.fileName})`
-                   )}
-                 </p>
-                    </p>
+                ) : (
+                  <div className="p-4 bg-amber-50 text-amber-800 rounded-xl text-sm font-semibold border border-amber-200 my-4">
+                    ⚠️ El cliente aún no ha guardado su perfil financiero.
                   </div>
+                )}
+
+                <div className="space-y-2 pt-4 mt-auto border-t border-slate-200">
+                  <h4 className="font-bold text-sm text-slate-700">Enviar Actualización al Cliente</h4>
                   <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newNotice}
+                      onChange={(e) => setNewNotice(e.target.value)}
+                      placeholder="Ej. Tu solicitud ya fue radicada..."
+                      className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    />
                     <button
-                      onClick={() => updateDocStatus(activeClient.id, d.id, "aprobado")}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      onClick={() => sendNotification(activeClient.id)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1"
                     >
-                      Aprobar
-                    </button>
-                    <button
-                      onClick={() => updateDocStatus(activeClient.id, d.id, "rechazado")}
-                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
-                    >
-                      Pedir Corrección
+                      <Send className="w-4 h-4" /> Enviar
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-slate-200">
-              <h4 className="font-bold text-sm text-slate-700">Enviar Actualización al Cliente</h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newNotice}
-                  onChange={(e) => setNewNotice(e.target.value)}
-                  placeholder="Ej. Tu solicitud ya fue radicada..."
-                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  onClick={() => sendNotification(activeClient.id)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1"
-                >
-                  <Send className="w-4 h-4" /> Enviar
-                </button>
               </div>
-            </div>
-          </div>
-        )}
+            )}
       </main>
     </div>
   );
