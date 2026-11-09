@@ -31,7 +31,9 @@ const STAGES = [
   "Perfil en Evaluación",
   "Recepción de Documentos",
   "Radicado en Banco",
-  "Crédito Aprobado"
+  "Crédito Aprobado",
+  "Archivado (Sin éxito)",
+  "Desembolsado (Exitoso)"
 ];
 
 export default function App() {
@@ -97,7 +99,11 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
 
     const found = clients.find((c) => c.email.toLowerCase() === cleanEmail && c.password === loginPassword);
     if (found) {
-      setCurrentUser({ role: "client", id: found.id });
+      if (found.stage >= 5) {
+        setErrorMsg("Tu trámite ha finalizado. Ya no tienes acceso activo al portal.");
+      } else {
+        setCurrentUser({ role: "client", id: found.id });
+      }
     } else {
       setErrorMsg("Correo o contraseña incorrectos.");
     }
@@ -358,7 +364,7 @@ const downloadExcel = () => {
                  required
                  placeholder="No. de Cédula"
                  value={regForm.cedula}
-                 onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value })}
+                 onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value.replace(/\D/g, "") })}
                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
                />
                <div className="flex gap-1">
@@ -408,13 +414,17 @@ const downloadExcel = () => {
                     <option>Crédito Vehículo</option>
                   </select>
                   <input
-                    type="text"
-                    required
-                    placeholder="Monto (ej. $40.000.000)"
-                    value={regForm.amount}
-                    onChange={(e) => setRegForm({ ...regForm, amount: e.target.value })}
-                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  />
+                 type="text"
+                 required
+                 placeholder="Monto (ej. 40.000.000)"
+                 value={regForm.amount}
+                 onChange={(e) => {
+                   const raw = e.target.value.replace(/\D/g, "");
+                   const formatted = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                   setRegForm({ ...regForm, amount: formatted });
+                 }}
+                 className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full"
+               />
                 </div>
                 <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm">
                   Crear Expediente
