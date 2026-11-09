@@ -85,17 +85,7 @@ const formatMoney = (val) => {
   return num.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Pone el punto cada mil
 };
 
-const getRequiredDocs = (activity) => {
-    const docs = [{ id: "cedula", title: "Cédula de ciudadanía (legible por ambas caras)" }];
-    if (activity === "Empleado") {
-      docs.push({ id: "ingresos", title: "Certificación laboral o 3 últimos desprendibles de nómina o extractos bancarios de los últimos 3 meses" });
-    } else if (activity === "Independiente") {
-      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses" });
-    } else if (activity === "Pensionado") {
-      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses o 3 últimos desprendibles de pago de la pensión" });
-    }
-    return docs;
-  };
+
 const handleSaveProfile = (clientId, e) => {
   e.preventDefault();
   setClients(prev => prev.map(c => c.id === clientId ? { ...c, profileData: profileForm } : c));
@@ -612,6 +602,7 @@ const downloadExcel = () => {
                 </div>
               </div>
               <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl mt-4 shadow-sm transition-colors">Guardar Perfil Financiero</button>
+              </form>
        ) : (
          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6 flex flex-wrap justify-between items-center gap-4 shadow-sm">
            <p className="text-sm text-emerald-800 font-bold flex items-center gap-2">✅ Perfil financiero guardado. Ya puedes cargar tus documentos.</p>
