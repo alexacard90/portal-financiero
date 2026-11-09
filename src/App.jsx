@@ -21,8 +21,8 @@ const BROKER_EMAIL = "solicitudes.credito.serfinanza@gmail.com";
 const BROKER_PHONE = "573138231893"; // Con código de país sin el +, ej: 57321...
 
 // CONFIGURACIÓN DE SUPABASE
-const supabaseUrl = "https://qmugawgqkxpadsqhyguc.supabase.co/rest/v1/";
-const supabaseKey = "sb_publishable_YMbtpu8L5oJu7n26pLJcJg_UtSIwrkX";
+const supabaseUrl = "https://qmugawgqkxpadsqhyguc.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtdWdhd2dxa3hwYWRzcWh5Z3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzQwOTMsImV4cCI6MjEwOTgxMDA5M30.S3PBDV_8g3WITzRai-SeBpVBCyYjoEKIyWiazve89-A";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const INITIAL_CLIENTS = [];
