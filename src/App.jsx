@@ -125,41 +125,46 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
 
 const handleFileUpload = async (clientId, docId, file) => {
     if (!file) return;
+    
+    alert("⏳ Subiendo archivo a la bóveda segura, espera un momento...");
 
-    alert("Subiendo archivo, por favor espera unos segundos...");
+    try {
+      const fileExt = file.name.split('.').pop();
+      // Esto limpia el nombre del archivo: quita tildes, ñ y espacios para que Supabase no lo bloquee
+      const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '');
+      const uniqueName = `${clientId}_${docId}_${Date.now()}_${safeName}.${fileExt}`;
 
-    const fileExt = file.name.split('.').pop();
-    // Crea un nombre único para que no se sobreescriban
-    const uniqueName = `${clientId}_${docId}_${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('documentos')
+        .upload(uniqueName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-    // 1. Sube el archivo a la nube
-    const { data, error } = await supabase.storage
-      .from('documentos')
-      .upload(uniqueName, file);
+      if (error) {
+        alert("❌ Error técnico exacto: " + error.message);
+        return;
+      }
 
-    if (error) {
-      alert("Hubo un error subiendo el archivo. Intenta de nuevo.");
-      return;
+      const { data: urlData } = supabase.storage
+        .from('documentos')
+        .getPublicUrl(uniqueName);
+
+      setClients((prev) =>
+        prev.map((c) => {
+          if (c.id !== clientId) return c;
+          return {
+            ...c,
+            documents: c.documents.map((d) =>
+              d.id === docId ? { ...d, status: "cargado", fileName: file.name, fileUrl: urlData.publicUrl, feedback: "" } : d
+            )
+          };
+        })
+      );
+      alert("✅ ¡Archivo cargado con éxito!");
+    } catch (err) {
+      alert("❌ Error grave en la aplicación: " + err.message);
     }
-
-    // 2. Obtiene el enlace público
-    const { data: urlData } = supabase.storage
-      .from('documentos')
-      .getPublicUrl(uniqueName);
-
-    // 3. Guarda el enlace en tu aplicación
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id !== clientId) return c;
-        return {
-          ...c,
-          documents: c.documents.map((d) =>
-            d.id === docId ? { ...d, status: "cargado", fileName: file.name, fileUrl: urlData.publicUrl, feedback: "" } : d
-          )
-        };
-      })
-    );
-    alert("¡Archivo cargado con éxito!");
   };
 
   const updateClientStage = (clientId, newStage) => {
