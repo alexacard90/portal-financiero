@@ -85,6 +85,17 @@ const formatMoney = (val) => {
   return num.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Pone el punto cada mil
 };
 
+const getRequiredDocs = (activity) => {
+    const docs = [{ id: "cedula", title: "Cédula de ciudadanía (legible por ambas caras)" }];
+    if (activity === "Empleado") {
+      docs.push({ id: "ingresos", title: "Certificación laboral o 3 últimos desprendibles de nómina o extractos bancarios de los últimos 3 meses" });
+    } else if (activity === "Independiente") {
+      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses" });
+    } else if (activity === "Pensionado") {
+      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses o 3 últimos desprendibles de pago de la pensión" });
+    }
+    return docs;
+  };
 const handleSaveProfile = (clientId, e) => {
   e.preventDefault();
   setClients(prev => prev.map(c => c.id === clientId ? { ...c, profileData: profileForm } : c));
@@ -251,7 +262,9 @@ const downloadExcel = () => {
       alert("No hay clientes para descargar.");
       return;
     }
-    let csv = "ID,Nombre,Cedula,Celular,Correo,Etapa,Actividad,Detalle_Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref_Personal,Ref_Familiar\n";
+    // Encabezados completos
+    let csv = "ID,Nombre,Cedula,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
+    
     clients.forEach(c => {
       const p = c.profileData || {};
       let extra = "";
@@ -259,10 +272,10 @@ const downloadExcel = () => {
       else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
       else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
 
-      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName} (${p.refPersonalPhone})","${p.refFamilyName} (${p.refFamilyPhone})"\n`;
+      // Datos mapeados exactamente con los encabezados
+      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
     });
     
-    // Esto asegura que Excel lea bien las tildes y las eñes (formato UTF-8 con BOM)
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -607,34 +620,43 @@ const downloadExcel = () => {
        )}
 
        <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" /> Documentos Requeridos
-              </h3>
-              {client.profileData && getRequiredDocs(client.profileData.activity).map((reqDoc) => {
-              const docData = client.documents.find(d => d.id === reqDoc.id) || { id: reqDoc.id, uploadedFiles: [] };
-              const files = docData.uploadedFiles || [];
-              const isFull = files.length >= 10;
-              return (
-                <div key={reqDoc.id} className="border border-slate-100 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-sm font-semibold text-slate-700">{reqDoc.title}</p>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      {files.map((f, i) => (
-                        <span key={i} className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-1 rounded">✅ Archivo {i + 1}</span>
-                      ))}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:col-span-2">
+            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-600" /> Documentos Requeridos
+            </h3>
+
+            {!client.profileData ? (
+              <div className="p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-sm font-semibold text-center">
+                ⚠️ Por favor, llena y guarda tu perfil financiero (Paso 1) en la parte de arriba. Una vez lo guardes, el sistema te mostrará los documentos exactos que debes cargar según tu actividad económica.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {getRequiredDocs(client.profileData.activity).map((reqDoc) => {
+                  const docData = client.documents.find(d => d.id === reqDoc.id) || { id: reqDoc.id, uploadedFiles: [] };
+                  const files = docData.uploadedFiles || [];
+                  const isFull = files.length >= 10;
+                  return (
+                    <div key={reqDoc.id} className="border border-slate-100 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-slate-700">{reqDoc.title}</p>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          {files.map((f, i) => (
+                            <span key={i} className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-1 rounded">✅ Archivo {i + 1}</span>
+                          ))}
+                        </div>
+                        {!isFull && (
+                          <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1 shadow-sm">
+                            <Upload className="w-3.5 h-3.5" /> {files.length > 0 ? "Cargar otro" : "Cargar PDF / Imagen"}
+                            <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(client.id, reqDoc.id, e.target.files[0])} />
+                          </label>
+                        )}
+                      </div>
                     </div>
-                    {!isFull && (
-                      <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1 shadow-sm">
-                        <Upload className="w-3.5 h-3.5" /> {files.length > 0 ? "Cargar otro" : "Cargar PDF / Imagen"}
-                        <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(client.id, reqDoc.id, e.target.files[0])} />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
               <h3 className="font-bold text-slate-800">Actualizaciones de tu Broker</h3>
