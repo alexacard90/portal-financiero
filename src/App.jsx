@@ -63,9 +63,22 @@ export default function App() {
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [filterStage, setFilterStage] = useState(1);
 const [profileForm, setProfileForm] = useState({
-  activity: "Empleado", income: "", expenses: "", city: "", address: "", 
-  refPersonalName: "", refPersonalPhone: "", refFamilyName: "", refFamilyPhone: ""
-});
+    activity: "Empleado", income: "", expenses: "", city: "", address: "", 
+    refPersonalName: "", refPersonalPhone: "", refFamilyName: "", refFamilyPhone: "",
+    contractType: "Término fijo", timeInCompany: "", businessType: "", pensionFund: ""
+  });
+
+  const getRequiredDocs = (activity) => {
+    const docs = [{ id: "cedula", title: "Cédula de ciudadanía (legible por ambas caras)" }];
+    if (activity === "Empleado") {
+      docs.push({ id: "ingresos", title: "Certificación laboral o 3 últimos desprendibles de nómina o extractos bancarios de los últimos tres meses" });
+    } else if (activity === "Independiente") {
+      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses" });
+    } else if (activity === "Pensionado") {
+      docs.push({ id: "ingresos", title: "Extractos bancarios de los últimos 3 meses o tres últimos desprendibles de pago de la pensión" });
+    }
+    return docs;
+  };
 
 const formatMoney = (val) => {
   const num = val.replace(/\D/g, ""); // Borra letras, comas o espacios
@@ -182,12 +195,18 @@ const handleFileUpload = async (clientId, docId, file) => {
       setClients((prev) =>
         prev.map((c) => {
           if (c.id !== clientId) return c;
-          return {
-            ...c,
-            documents: c.documents.map((d) =>
-              d.id === docId ? { ...d, status: "cargado", fileName: file.name, fileUrl: urlData.publicUrl, feedback: "" } : d
-            )
-          };
+          let updatedDocs = [...c.documents];
+          const docIndex = updatedDocs.findIndex(d => d.id === docId);
+
+          if (docIndex >= 0) {
+            const currentFiles = updatedDocs[docIndex].uploadedFiles || [];
+            if (currentFiles.length < 10) {
+              updatedDocs[docIndex] = { ...updatedDocs[docIndex], status: "cargado", uploadedFiles: [...currentFiles, { name: file.name, url: urlData.publicUrl }] };
+            }
+          } else {
+            updatedDocs.push({ id: docId, status: "cargado", uploadedFiles: [{ name: file.name, url: urlData.publicUrl }] });
+          }
+          return { ...c, documents: updatedDocs };
         })
       );
       alert("✅ ¡Archivo cargado con éxito!");
@@ -232,10 +251,15 @@ const downloadExcel = () => {
       alert("No hay clientes para descargar.");
       return;
     }
-    let csv = "ID,Nombre,Cedula,Celular,Correo,Tipo Credito,Monto,Etapa\n";
+    let csv = "ID,Nombre,Cedula,Celular,Correo,Etapa,Actividad,Detalle_Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref_Personal,Ref_Familiar\n";
     clients.forEach(c => {
-      // Usamos comillas para evitar problemas con los signos pesos y espacios
-      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]}\n`;
+      const p = c.profileData || {};
+      let extra = "";
+      if (p.activity === "Empleado") extra = `Contrato: ${p.contractType} | Tiempo: ${p.timeInCompany} años`;
+      else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
+      else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
+
+      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName} (${p.refPersonalPhone})","${p.refFamilyName} (${p.refFamilyPhone})"\n`;
     });
     
     // Esto asegura que Excel lea bien las tildes y las eñes (formato UTF-8 con BOM)
@@ -499,47 +523,82 @@ const downloadExcel = () => {
        {!client.profileData ? (
          <form onSubmit={(e) => handleSaveProfile(client.id, e)} className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-200 mb-6 space-y-4">
            <h3 className="font-bold text-indigo-800 text-lg border-b border-slate-100 pb-2">Paso 1: Completa tu perfil financiero</h3>
-           <div className="grid md:grid-cols-3 gap-4">
-             <div>
-               <label className="block text-xs font-bold text-slate-600 mb-1">Actividad Económica</label>
-               <select required value={profileForm.activity} onChange={(e) => setProfileForm({...profileForm, activity: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer">
-                 <option value="Empleado">Empleado</option>
-                 <option value="Independiente">Independiente</option>
-                 <option value="Pensionado">Pensionado</option>
-               </select>
-             </div>
-             <div>
-               <label className="block text-xs font-bold text-slate-600 mb-1">Ingresos Mensuales</label>
-               <input type="text" required value={profileForm.income} onChange={(e) => setProfileForm({...profileForm, income: formatMoney(e.target.value)})} placeholder="Ej. 2.500.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-             <div>
-               <label className="block text-xs font-bold text-slate-600 mb-1">Gastos Mensuales</label>
-               <input type="text" required value={profileForm.expenses} onChange={(e) => setProfileForm({...profileForm, expenses: formatMoney(e.target.value)})} placeholder="Ej. 1.200.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-             <div>
-               <label className="block text-xs font-bold text-slate-600 mb-1">Ciudad de Residencia</label>
-               <input type="text" required value={profileForm.city} onChange={(e) => setProfileForm({...profileForm, city: e.target.value})} placeholder="Ej. Bogotá" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-             <div className="md:col-span-2">
-               <label className="block text-xs font-bold text-slate-600 mb-1">Dirección Exacta</label>
-               <input type="text" required value={profileForm.address} onChange={(e) => setProfileForm({...profileForm, address: e.target.value})} placeholder="Dirección completa" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-           </div>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Actividad Económica</label>
+                  <select required value={profileForm.activity} onChange={(e) => setProfileForm({...profileForm, activity: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer">
+                    <option value="Empleado">Empleado</option>
+                    <option value="Independiente">Independiente</option>
+                    <option value="Pensionado">Pensionado</option>
+                  </select>
+                </div>
+                
+                {profileForm.activity === "Empleado" && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Tipo de contrato</label>
+                      <select required value={profileForm.contractType} onChange={(e) => setProfileForm({...profileForm, contractType: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer">
+                        <option value="Término fijo">Término fijo</option>
+                        <option value="Indefinido">Indefinido</option>
+                        <option value="Obra labor">Obra labor</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Tiempo en la empresa</label>
+                      <div className="flex items-center gap-2">
+                        <input type="text" required value={profileForm.timeInCompany} onChange={(e) => setProfileForm({...profileForm, timeInCompany: e.target.value.replace(/\D/g, "")})} placeholder="Ej. 2" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                        <span className="text-sm font-bold text-slate-600">años</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {profileForm.activity === "Independiente" && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-600 mb-1">¿De qué trata tu negocio?</label>
+                    <input type="text" required value={profileForm.businessType} onChange={(e) => setProfileForm({...profileForm, businessType: e.target.value})} placeholder="Ej. Venta de ropa..." className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                  </div>
+                )}
+                
+                {profileForm.activity === "Pensionado" && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Fondo de pensiones al que pertenece</label>
+                    <input type="text" required value={profileForm.pensionFund} onChange={(e) => setProfileForm({...profileForm, pensionFund: e.target.value})} placeholder="Ej. Colpensiones" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                  </div>
+                )}
 
-           <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-             <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-               <h4 className="font-bold text-slate-700 text-sm">Referencia Personal</h4>
-               <input type="text" required value={profileForm.refPersonalName} onChange={(e) => setProfileForm({...profileForm, refPersonalName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-               <input type="tel" required value={profileForm.refPersonalPhone} onChange={(e) => setProfileForm({...profileForm, refPersonalPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-             <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-               <h4 className="font-bold text-slate-700 text-sm">Referencia Familiar</h4>
-               <input type="text" required value={profileForm.refFamilyName} onChange={(e) => setProfileForm({...profileForm, refFamilyName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-               <input type="tel" required value={profileForm.refFamilyPhone} onChange={(e) => setProfileForm({...profileForm, refFamilyPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
-             </div>
-           </div>
-           <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl mt-4 shadow-sm transition-colors">Guardar Perfil Financiero</button>
-         </form>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Ingresos Mensuales</label>
+                  <input type="text" required value={profileForm.income} onChange={(e) => setProfileForm({...profileForm, income: formatMoney(e.target.value)})} placeholder="Ej. 2.500.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Gastos Mensuales</label>
+                  <input type="text" required value={profileForm.expenses} onChange={(e) => setProfileForm({...profileForm, expenses: formatMoney(e.target.value)})} placeholder="Ej. 1.200.000" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Ciudad de Residencia</label>
+                  <input type="text" required value={profileForm.city} onChange={(e) => setProfileForm({...profileForm, city: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Dirección Exacta</label>
+                  <input type="text" required value={profileForm.address} onChange={(e) => setProfileForm({...profileForm, address: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-700 text-sm">Referencia Personal</h4>
+                  <input type="text" required value={profileForm.refPersonalName} onChange={(e) => setProfileForm({...profileForm, refPersonalName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                  <input type="tel" required value={profileForm.refPersonalPhone} onChange={(e) => setProfileForm({...profileForm, refPersonalPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-700 text-sm">Referencia Familiar</h4>
+                  <input type="text" required value={profileForm.refFamilyName} onChange={(e) => setProfileForm({...profileForm, refFamilyName: e.target.value})} placeholder="Nombre completo" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                  <input type="tel" required value={profileForm.refFamilyPhone} onChange={(e) => setProfileForm({...profileForm, refFamilyPhone: e.target.value})} placeholder="Teléfono celular" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none" />
+                </div>
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl mt-4 shadow-sm transition-colors">Guardar Perfil Financiero</button>
        ) : (
          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6 flex flex-wrap justify-between items-center gap-4 shadow-sm">
            <p className="text-sm text-emerald-800 font-bold flex items-center gap-2">✅ Perfil financiero guardado. Ya puedes cargar tus documentos.</p>
@@ -552,41 +611,29 @@ const downloadExcel = () => {
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-600" /> Documentos Requeridos
               </h3>
-              {client.documents.map((docItem) => (
-                <div key={docItem.id} className="p-4 rounded-xl border border-slate-200 flex flex-wrap justify-between items-center gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{docItem.name}</p>
-                    {docItem.fileName && <p className="text-xs text-slate-500">Archivo: {docItem.fileName}</p>}
-                    {docItem.feedback && <p className="text-xs text-red-600 font-medium mt-1">⚠️ {docItem.feedback}</p>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {docItem.status === "aprobado" && (
-                      <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Aprobado
-                      </span>
+              {client.profileData && getRequiredDocs(client.profileData.activity).map((reqDoc) => {
+              const docData = client.documents.find(d => d.id === reqDoc.id) || { id: reqDoc.id, uploadedFiles: [] };
+              const files = docData.uploadedFiles || [];
+              const isFull = files.length >= 10;
+              return (
+                <div key={reqDoc.id} className="border border-slate-100 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-slate-700">{reqDoc.title}</p>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {files.map((f, i) => (
+                        <span key={i} className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-1 rounded">✅ Archivo {i + 1}</span>
+                      ))}
+                    </div>
+                    {!isFull && (
+                      <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1 shadow-sm">
+                        <Upload className="w-3.5 h-3.5" /> {files.length > 0 ? "Cargar otro" : "Cargar PDF / Imagen"}
+                        <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(client.id, reqDoc.id, e.target.files[0])} />
+                      </label>
                     )}
-                    {docItem.status === "cargado" && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" /> En revisión
-                      </span>
-                    )}
-                    {docItem.status === "rechazado" && (
-                      <span className="text-xs bg-red-100 text-red-800 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5" /> Corregir
-                      </span>
-                    )}
-                    <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1 text-center">
-                   <Upload className="w-3.5 h-3.5" /> Cargar PDF / Imagen
-                   <input
-                     type="file"
-                     accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx"
-                     className="hidden"
-                     onChange={(e) => handleFileUpload(client.id, docItem.id, e.target.files[0])}
-                   />
-                 </label>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
@@ -677,16 +724,59 @@ const downloadExcel = () => {
              </div>
 
              {activeClient.profileData && (
-               <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                 <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
-                 <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
-                 <p><strong>Ingresos:</strong> ${activeClient.profileData.income}</p>
-                 <p><strong>Gastos:</strong> ${activeClient.profileData.expenses}</p>
-                 <p className="col-span-2"><strong>Dirección:</strong> {activeClient.profileData.address}</p>
-                 <p className="col-span-2 text-indigo-700 border-t border-slate-200 pt-2"><strong>Ref. Personal:</strong> {activeClient.profileData.refPersonalName} — Tel: {activeClient.profileData.refPersonalPhone}</p>
-                 <p className="col-span-2 text-indigo-700"><strong>Ref. Familiar:</strong> {activeClient.profileData.refFamilyName} — Tel: {activeClient.profileData.refFamilyPhone}</p>
-               </div>
-             )}
+                  <div className="mt-4 space-y-4">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <p className="col-span-2 text-sm text-indigo-800 font-bold border-b border-slate-200 pb-1 mb-1">Perfil Financiero</p>
+                      <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
+                      <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
+                      
+                      {activeClient.profileData.activity === "Empleado" && (
+                         <>
+                           <p><strong>Contrato:</strong> {activeClient.profileData.contractType}</p>
+                           <p><strong>Antigüedad:</strong> {activeClient.profileData.timeInCompany} años</p>
+                         </>
+                      )}
+                      {activeClient.profileData.activity === "Independiente" && (
+                         <p className="col-span-2"><strong>Negocio:</strong> {activeClient.profileData.businessType}</p>
+                      )}
+                      {activeClient.profileData.activity === "Pensionado" && (
+                         <p className="col-span-2"><strong>Fondo:</strong> {activeClient.profileData.pensionFund}</p>
+                      )}
+
+                      <p><strong>Ingresos:</strong> ${activeClient.profileData.income}</p>
+                      <p><strong>Gastos:</strong> ${activeClient.profileData.expenses}</p>
+                      <p className="col-span-2"><strong>Dirección:</strong> {activeClient.profileData.address}</p>
+                      <p className="col-span-2 text-indigo-700 border-t border-slate-200 pt-2 mt-1"><strong>Ref. Personal:</strong> {activeClient.profileData.refPersonalName} — Tel: {activeClient.profileData.refPersonalPhone}</p>
+                      <p className="col-span-2 text-indigo-700"><strong>Ref. Familiar:</strong> {activeClient.profileData.refFamilyName} — Tel: {activeClient.profileData.refFamilyPhone}</p>
+                    </div>
+
+                    <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                      <h4 className="font-bold text-indigo-900 text-sm mb-3">Documentos Cargados</h4>
+                      <div className="space-y-3">
+                        {getRequiredDocs(activeClient.profileData.activity).map(reqDoc => {
+                          const docData = activeClient.documents.find(d => d.id === reqDoc.id);
+                          const files = docData?.uploadedFiles || [];
+                          return (
+                            <div key={reqDoc.id} className="bg-white p-3 rounded-lg border border-slate-200">
+                               <p className="text-xs font-bold text-slate-700 mb-2">{reqDoc.title}</p>
+                               {files.length === 0 ? (
+                                 <p className="text-xs text-red-500 font-semibold">Pendiente por cargar</p>
+                               ) : (
+                                 <div className="flex flex-wrap gap-2">
+                                   {files.map((f, i) => (
+                                     <a key={i} href={f.url} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold hover:bg-indigo-200 shadow-sm flex items-center gap-1">
+                                       📄 Ver {i + 1}
+                                     </a>
+                                   ))}
+                                 </div>
+                               )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-slate-500">{activeClient.email} • Solicitud: {activeClient.amount}</p>
               </div>
               <div>
