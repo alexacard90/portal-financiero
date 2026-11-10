@@ -103,68 +103,76 @@ export default function App() {
     return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const handleLogin = (e) => {
+ const handleLogin = async (e) => {
     e.preventDefault();
-    setErrorMsg("");
+    setErrorMsg("⏳ Verificando credenciales...");
     const cleanEmail = loginEmail.trim().toLowerCase();
 
-    if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
-      if (loginPassword === "Kike#1401") {
-        setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
-        fetchClients(); // Forzar sincronización al entrar como administradora
-      } else {
-        setErrorMsg("Contraseña de administradora incorrecta.");
-      }
+    // 1. Iniciar sesión oficialmente en Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: loginPassword,
+    });
+
+    if (authError) {
+      setErrorMsg("Correo o contraseña incorrectos.");
       return;
     }
 
-    const found = clients.find((c) => c.email.toLowerCase() === cleanEmail && c.password === loginPassword);
-    if (found) {
-      if (found.stage >= 5) {
-        setErrorMsg("Tu trámite ha finalizado. Ya no tienes acceso activo al portal.");
-      } else {
-        setCurrentUser({ role: "client", id: found.id });
-      }
+    // 2. Si es la administradora
+    if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
+      setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
+      fetchClients();
+      setErrorMsg("");
+      return;
+    }
+
+    // 3. Si es un cliente, buscar su expediente
+    const { data: clientData, error: dbError } = await supabase
+      .from("clientes_broker")
+      .select("*")
+      .eq("auth_id", authData.user.id)
+      .single();
+
+    if (dbError || !clientData) {
+      setErrorMsg("No se encontró el expediente asociado a esta cuenta.");
+      return;
+    }
+
+    if (clientData.stage >= 5) {
+      setErrorMsg("Tu trámite ha finalizado. Ya no tienes acceso activo al portal.");
+      supabase.auth.signOut();
     } else {
-      setErrorMsg("Correo o contraseña incorrectos.");
+      setErrorMsg("");
+      setCurrentUser({ role: "client", id: clientData.id });
     }
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!regForm.name || !regForm.email || !regForm.password) return;
-
-    const exists = clients.some(c => c.email.toLowerCase() === regForm.email.trim().toLowerCase());
-    if(exists) {
-      setErrorMsg("Este correo ya está registrado.");
-      return;
-    }
-
+    // 2. Crear el expediente en la bóveda
     const newClient = {
       id: "C-" + Math.floor(1000 + Math.random() * 9000),
+      auth_id: authData.user.id, // Vincula la fila con la identidad encriptada
       name: regForm.name,
       cedula: regForm.cedula,
       email: regForm.email.trim().toLowerCase(),
-      password: regForm.password,
+      password: "Encriptada por seguridad", 
       phone: regForm.countryCode + " " + regForm.phone,
       creditType: regForm.creditType,
       amount: regForm.amount,
       stage: 1,
       profileData: null,
       documents: [],
-      notifications: [
-        { id: Date.now().toString(), date: "Hoy", text: "Bienvenido. Por favor carga tus documentos para iniciar el estudio." }
-      ]
+      notifications: [{ id: Date.now().toString(), date: "Hoy", text: "Bienvenido. Por favor completa tu perfil financiero." }]
     };
 
-    // Guardar en la nube directamente
-    const { error } = await supabase.from("clientes_broker").insert([newClient]);
-    if (error) {
-      setErrorMsg("Error técnico en la nube: " + error.message);
+    const { error: dbError } = await supabase.from("clientes_broker").insert([newClient]);
+    if (dbError) {
+      setErrorMsg("❌ Error de red al crear expediente. " + dbError.message);
       return;
     }
 
     setClients([...clients, newClient]);
+    setErrorMsg("");
     setCurrentUser({ role: "client", id: newClient.id });
   };
 
