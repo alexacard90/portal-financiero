@@ -25,8 +25,6 @@ const supabaseUrl = "https://qmugawgqkxpadsqhyguc.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtdWdhd2dxa3hwYWRzcWh5Z3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzQwOTMsImV4cCI6MjEwOTgxMDA5M30.S3PBDV_8g3WITzRai-SeBpVBCyYjoEKIyWiazve89-A";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const INITIAL_CLIENTS = [];
-
 const STAGES = [
   "Perfil en Evaluación",
   "Recepción de Documentos",
@@ -37,12 +35,7 @@ const STAGES = [
 ];
 
 export default function App() {
-  const [clients, setClients] = useState(() => {
-    // Al cambiar v1 a v2, el sistema borra automáticamente los datos viejos
-    const saved = localStorage.getItem("portal_clients_v2");
-    return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
-  });
-
+  const [clients, setClients] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -50,23 +43,36 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const [regForm, setRegForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    cedula: "",
-    phone: "",
-    countryCode: "+57",
-    creditType: "Libre Inversión",
-    amount: ""
+    name: "", email: "", password: "", cedula: "", phone: "", countryCode: "+57", creditType: "Libre Inversión", amount: ""
   });
 
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [filterStage, setFilterStage] = useState(1);
-const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState({
     activity: "Empleado", income: "", expenses: "", city: "", address: "", 
     refPersonalName: "", refPersonalPhone: "", refFamilyName: "", refFamilyPhone: "",
     contractType: "Término fijo", timeInCompany: "", businessType: "", pensionFund: ""
   });
+  const [newNotice, setNewNotice] = useState("");
+
+  // ==========================================
+  // CONEXIÓN A SUPABASE: Obtener datos al inicio
+  // ==========================================
+  useEffect(() => {
+    const fetchClients = async () => {
+      const { data, error } = await supabase.from("clientes_broker").select("*");
+      if (data) {
+        // Asegurarnos de que los JSONB no vengan nulos
+        const cleanData = data.map(c => ({
+          ...c,
+          documents: c.documents || [],
+          notifications: c.notifications || []
+        }));
+        setClients(cleanData);
+      }
+    };
+    fetchClients();
+  }, []);
 
   const getRequiredDocs = (activity) => {
     const docs = [{ id: "cedula", title: "Cédula de ciudadanía (legible por ambas caras)" }];
@@ -80,36 +86,24 @@ const [profileForm, setProfileForm] = useState({
     return docs;
   };
 
-const formatMoney = (val) => {
-  const num = val.replace(/\D/g, ""); // Borra letras, comas o espacios
-  return num.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Pone el punto cada mil
-};
-
-
-const handleSaveProfile = (clientId, e) => {
-  e.preventDefault();
-  setClients(prev => prev.map(c => c.id === clientId ? { ...c, profileData: profileForm } : c));
-  alert("¡Datos financieros guardados con éxito!");
-};
-  const [newNotice, setNewNotice] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("portal_clients_v2", JSON.stringify(clients));
-  }, [clients]);
+  const formatMoney = (val) => {
+    const num = val.replace(/\D/g, "");
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
     setErrorMsg("");
     const cleanEmail = loginEmail.trim().toLowerCase();
 
-if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
-  if (loginPassword === "Kike#1401") {
-    setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
-  } else {
-    setErrorMsg("Contraseña de administradora incorrecta.");
-  }
-  return;
-}
+    if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
+      if (loginPassword === "Kike#1401") {
+        setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
+      } else {
+        setErrorMsg("Contraseña de administradora incorrecta.");
+      }
+      return;
+    }
 
     const found = clients.find((c) => c.email.toLowerCase() === cleanEmail && c.password === loginPassword);
     if (found) {
@@ -123,7 +117,7 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
     }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (!regForm.name || !regForm.email || !regForm.password) return;
 
@@ -142,117 +136,127 @@ if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
       phone: regForm.countryCode + " " + regForm.phone,
       creditType: regForm.creditType,
       amount: regForm.amount,
-      bank: "En asignación",
       stage: 1,
-      documents: [
-        { id: "d1", name: "Cédula de ciudadanía (legible por ambas caras)", status: "pendiente", fileName: "", feedback: "" },
-        { id: "d2", name: "Extractos bancarios (últimos 3 meses)", status: "pendiente", fileName: "", feedback: "" },
-        { id: "d3", name: "Certificación laboral o RUT", status: "pendiente", fileName: "", feedback: "" },
-        { id: "d4", name: "Declaración de renta o nómina", status: "pendiente", fileName: "", feedback: "" }
-      ],
+      profileData: null,
+      documents: [],
       notifications: [
         { id: Date.now().toString(), date: "Hoy", text: "Bienvenido. Por favor carga tus documentos para iniciar el estudio." }
       ]
     };
 
+    // Guardar en la nube
+    const { error } = await supabase.from("clientes_broker").insert([newClient]);
+    if (error) {
+      setErrorMsg("Error técnico en la nube: " + error.message);
+      return;
+    }
+
     setClients([...clients, newClient]);
     setCurrentUser({ role: "client", id: newClient.id });
   };
 
-const handleFileUpload = async (clientId, docId, file) => {
-    if (!file) return;
+  const handleSaveProfile = async (clientId, e) => {
+    e.preventDefault();
     
+    // Guardar en la nube
+    const { error } = await supabase.from("clientes_broker").update({ profileData: profileForm }).eq("id", clientId);
+    if (error) {
+      alert("Error al guardar en la nube: " + error.message);
+      return;
+    }
+
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, profileData: profileForm } : c));
+    alert("¡Datos financieros guardados con éxito!");
+  };
+
+  const handleFileUpload = async (clientId, docId, file) => {
+    if (!file) return;
     alert("⏳ Subiendo archivo a la bóveda segura, espera un momento...");
 
     try {
       const fileExt = file.name.split('.').pop().toLowerCase();
-
-    // Bloqueo de seguridad para evitar virus y formatos raros
-    const allowedExts = ["pdf", "jpg", "jpeg", "png", "heic", "doc", "docx"];
-    if (!allowedExts.includes(fileExt)) {
-      alert("❌ Formato no permitido. Por seguridad, solo aceptamos PDF, Imágenes o documentos de Word.");
-      return;
-    }
-      // Esto limpia el nombre del archivo: quita tildes, ñ y espacios para que Supabase no lo bloquee
+      const allowedExts = ["pdf", "jpg", "jpeg", "png", "heic", "doc", "docx"];
+      if (!allowedExts.includes(fileExt)) {
+        alert("❌ Formato no permitido. Por seguridad, solo aceptamos PDF, Imágenes o documentos de Word.");
+        return;
+      }
+      
       const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '');
       const uniqueName = `${clientId}_${docId}_${Date.now()}_${safeName}.${fileExt}`;
 
       const { data, error } = await supabase.storage
         .from('documentos')
-        .upload(uniqueName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(uniqueName, file, { cacheControl: '3600', upsert: false });
 
       if (error) {
         alert("❌ Error técnico exacto: " + error.message);
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('documentos')
-        .getPublicUrl(uniqueName);
+      const { data: urlData } = supabase.storage.from('documentos').getPublicUrl(uniqueName);
 
-      setClients((prev) =>
-        prev.map((c) => {
-          if (c.id !== clientId) return c;
-          let updatedDocs = [...c.documents];
-          const docIndex = updatedDocs.findIndex(d => d.id === docId);
+      const client = clients.find(c => c.id === clientId);
+      let updatedDocs = [...(client.documents || [])];
+      const docIndex = updatedDocs.findIndex(d => d.id === docId);
 
-          if (docIndex >= 0) {
-            const currentFiles = updatedDocs[docIndex].uploadedFiles || [];
-            if (currentFiles.length < 10) {
-              updatedDocs[docIndex] = { ...updatedDocs[docIndex], status: "cargado", uploadedFiles: [...currentFiles, { name: file.name, url: urlData.publicUrl }] };
-            }
-          } else {
-            updatedDocs.push({ id: docId, status: "cargado", uploadedFiles: [{ name: file.name, url: urlData.publicUrl }] });
-          }
-          return { ...c, documents: updatedDocs };
-        })
-      );
+      if (docIndex >= 0) {
+        const currentFiles = updatedDocs[docIndex].uploadedFiles || [];
+        if (currentFiles.length < 10) {
+          updatedDocs[docIndex] = { ...updatedDocs[docIndex], status: "cargado", uploadedFiles: [...currentFiles, { name: file.name, url: urlData.publicUrl }] };
+        }
+      } else {
+        updatedDocs.push({ id: docId, status: "cargado", uploadedFiles: [{ name: file.name, url: urlData.publicUrl }] });
+      }
+
+      // Guardar links en la tabla de la nube
+      const { error: dbError } = await supabase.from("clientes_broker").update({ documents: updatedDocs }).eq("id", clientId);
+      if (dbError) {
+        alert("❌ Archivo subido pero hubo error al enlazarlo: " + dbError.message);
+        return;
+      }
+
+      setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, documents: updatedDocs } : c)));
       alert("✅ ¡Archivo cargado con éxito!");
     } catch (err) {
       alert("❌ Error grave en la aplicación: " + err.message);
     }
   };
 
-  const updateClientStage = (clientId, newStage) => {
-    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, stage: Number(newStage) } : c)));
+  const updateClientStage = async (clientId, newStage) => {
+    const { error } = await supabase.from("clientes_broker").update({ stage: Number(newStage) }).eq("id", clientId);
+    if (!error) {
+      setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, stage: Number(newStage) } : c)));
+    }
   };
 
-  const updateDocStatus = (clientId, docId, status) => {
-    const feedback = status === "rechazado" ? prompt("Indica al cliente el motivo para corregir el documento:") || "Por favor vuelve a subir un archivo legible." : "";
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id !== clientId) return c;
-        return {
-          ...c,
-          documents: c.documents.map((d) => (d.id === docId ? { ...d, status, feedback } : d))
-        };
-      })
-    );
+  const updateDocStatus = async (clientId, docId, status) => {
+    const feedback = status === "correccion" ? prompt("Indica al cliente el motivo para corregir el documento:") || "Por favor vuelve a subir un archivo legible." : "";
+    const client = clients.find(c => c.id === clientId);
+    const updatedDocs = (client.documents || []).map((d) => (d.id === docId ? { ...d, status, feedback } : d));
+    
+    // Guardar estado en la nube
+    await supabase.from("clientes_broker").update({ documents: updatedDocs }).eq("id", clientId);
+    
+    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, documents: updatedDocs } : c)));
   };
 
-  const sendNotification = (clientId) => {
+  const sendNotification = async (clientId) => {
     if (!newNotice.trim()) return;
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id !== clientId) return c;
-        return {
-          ...c,
-          notifications: [{ id: Date.now().toString(), date: "Hoy", text: newNotice }, ...c.notifications]
-        };
-      })
-    );
+    const client = clients.find(c => c.id === clientId);
+    const newNotifList = [{ id: Date.now().toString(), date: "Hoy", text: newNotice }, ...(client.notifications || [])];
+    
+    // Guardar notificacion en la nube
+    await supabase.from("clientes_broker").update({ notifications: newNotifList }).eq("id", clientId);
+    
+    setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, notifications: newNotifList } : c)));
     setNewNotice("");
   };
 
-const downloadExcel = () => {
+  const downloadExcel = () => {
     if (clients.length === 0) {
       alert("No hay clientes para descargar.");
       return;
     }
-    // Encabezados completos
     let csv = "ID,Nombre,Cedula,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
     
     clients.forEach(c => {
@@ -262,7 +266,6 @@ const downloadExcel = () => {
       else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
       else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
 
-      // Datos mapeados exactamente con los encabezados
       csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
     });
     
@@ -275,6 +278,7 @@ const downloadExcel = () => {
     link.click();
     document.body.removeChild(link);
   };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -495,9 +499,6 @@ const downloadExcel = () => {
               <div>
                 <span className="text-xs font-semibold text-indigo-600 uppercase">Expediente {client.id}</span>
                 <h2 className="text-xl font-bold text-slate-800">{client.creditType} — {client.amount}</h2>
-                <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                  <Building2 className="w-4 h-4" /> Entidad asignada: {client.bank}
-                </p>
               </div>
               <a
                 href={whatsappUrl}
@@ -623,7 +624,7 @@ const downloadExcel = () => {
             ) : (
               <div className="space-y-3">
                 {getRequiredDocs(client.profileData.activity).map((reqDoc) => {
-                  const docData = client.documents.find(d => d.id === reqDoc.id) || { id: reqDoc.id, uploadedFiles: [] };
+                  const docData = (client.documents || []).find(d => d.id === reqDoc.id) || { id: reqDoc.id, uploadedFiles: [] };
                   const files = docData.uploadedFiles || [];
                   const isFull = files.length >= 10;
                   return (
@@ -651,7 +652,7 @@ const downloadExcel = () => {
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
               <h3 className="font-bold text-slate-800">Actualizaciones de tu Broker</h3>
-              {client.notifications.map((n) => (
+              {(client.notifications || []).map((n) => (
                 <div key={n.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
                   <span className="font-bold text-indigo-600">{n.date}</span>
                   <p className="text-slate-700">{n.text}</p>
@@ -717,14 +718,14 @@ const downloadExcel = () => {
               }`}
             >
               <div className="font-bold text-sm text-slate-800">{c.name}</div>
-              <div className="text-xs text-slate-500">{c.creditType} • {c.amount}</div>
+              <div className="text-xs text-slate-500">{c.creditType} • ${c.amount}</div>
               <div className="text-xs font-semibold text-indigo-600 mt-1">Etapa: {STAGES[c.stage - 1]}</div>
             </button>
           ))}
         </div>
 
         {activeClient && (
-              <div className="w-full flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto">
+              <div className="w-full flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto md:col-span-2">
                 <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Detalles del Cliente</h3>
                 
                 <div className="mb-4">
@@ -783,7 +784,7 @@ const downloadExcel = () => {
                       <h4 className="font-bold text-indigo-900 text-sm mb-4">Revisión de Documentos</h4>
                       <div className="space-y-4">
                         {getRequiredDocs(activeClient.profileData.activity).map(reqDoc => {
-                          const docData = activeClient.documents.find(d => d.id === reqDoc.id);
+                          const docData = (activeClient.documents || []).find(d => d.id === reqDoc.id);
                           const files = docData?.uploadedFiles || [];
                           const status = docData?.status || "pendiente";
                           
