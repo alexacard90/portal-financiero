@@ -13,7 +13,8 @@ import {
   Building2,
   Send,
   UserPlus,
-  LogIn
+  LogIn,
+  RefreshCw
 } from "lucide-react";
 
 // CONFIGURACIÓN REAL DE TU AMIGA (Modifica lo que está entre comillas)
@@ -36,6 +37,7 @@ const STAGES = [
 
 export default function App() {
   const [clients, setClients] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -56,13 +58,15 @@ export default function App() {
   const [newNotice, setNewNotice] = useState("");
 
   // ==========================================
-  // CONEXIÓN A SUPABASE: Obtener datos al inicio
+  // MOTOR DE SINCRONIZACIÓN EN LA NUBE (SUPABASE)
   // ==========================================
-  useEffect(() => {
-    const fetchClients = async () => {
-      const { data, error } = await supabase.from("clientes_broker").select("*");
+  const fetchClients = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.from("clientes_broker").select("*").order("stage", { ascending: true });
+      if (error) throw error;
+      
       if (data) {
-        // Asegurarnos de que los JSONB no vengan nulos
         const cleanData = data.map(c => ({
           ...c,
           documents: c.documents || [],
@@ -70,7 +74,15 @@ export default function App() {
         }));
         setClients(cleanData);
       }
-    };
+    } catch (error) {
+      console.error("Error al descargar datos de Supabase:", error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Descargar los datos al abrir la página web
+  useEffect(() => {
     fetchClients();
   }, []);
 
@@ -99,6 +111,7 @@ export default function App() {
     if (cleanEmail === BROKER_EMAIL.toLowerCase()) {
       if (loginPassword === "Kike#1401") {
         setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
+        fetchClients(); // Forzar sincronización al entrar como administradora
       } else {
         setErrorMsg("Contraseña de administradora incorrecta.");
       }
@@ -128,7 +141,7 @@ export default function App() {
     }
 
     const newClient = {
-      id: "C-" + Math.floor(100 + Math.random() * 900),
+      id: "C-" + Math.floor(1000 + Math.random() * 9000),
       name: regForm.name,
       cedula: regForm.cedula,
       email: regForm.email.trim().toLowerCase(),
@@ -144,7 +157,7 @@ export default function App() {
       ]
     };
 
-    // Guardar en la nube
+    // Guardar en la nube directamente
     const { error } = await supabase.from("clientes_broker").insert([newClient]);
     if (error) {
       setErrorMsg("Error técnico en la nube: " + error.message);
@@ -158,7 +171,7 @@ export default function App() {
   const handleSaveProfile = async (clientId, e) => {
     e.preventDefault();
     
-    // Guardar en la nube
+    // Guardar perfil en la nube
     const { error } = await supabase.from("clientes_broker").update({ profileData: profileForm }).eq("id", clientId);
     if (error) {
       alert("Error al guardar en la nube: " + error.message);
@@ -208,10 +221,10 @@ export default function App() {
         updatedDocs.push({ id: docId, status: "cargado", uploadedFiles: [{ name: file.name, url: urlData.publicUrl }] });
       }
 
-      // Guardar links en la tabla de la nube
+      // Guardar enlace del archivo en la base de datos de la nube
       const { error: dbError } = await supabase.from("clientes_broker").update({ documents: updatedDocs }).eq("id", clientId);
       if (dbError) {
-        alert("❌ Archivo subido pero hubo error al enlazarlo: " + dbError.message);
+        alert("❌ Archivo subido pero hubo error al enlazarlo en la base de datos.");
         return;
       }
 
@@ -230,13 +243,11 @@ export default function App() {
   };
 
   const updateDocStatus = async (clientId, docId, status) => {
-    const feedback = status === "correccion" ? prompt("Indica al cliente el motivo para corregir el documento:") || "Por favor vuelve a subir un archivo legible." : "";
+    const feedback = status === "rechazado" || status === "correccion" ? prompt("Indica al cliente el motivo para corregir el documento:") || "Por favor vuelve a subir un archivo legible." : "";
     const client = clients.find(c => c.id === clientId);
     const updatedDocs = (client.documents || []).map((d) => (d.id === docId ? { ...d, status, feedback } : d));
     
-    // Guardar estado en la nube
     await supabase.from("clientes_broker").update({ documents: updatedDocs }).eq("id", clientId);
-    
     setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, documents: updatedDocs } : c)));
   };
 
@@ -245,9 +256,7 @@ export default function App() {
     const client = clients.find(c => c.id === clientId);
     const newNotifList = [{ id: Date.now().toString(), date: "Hoy", text: newNotice }, ...(client.notifications || [])];
     
-    // Guardar notificacion en la nube
     await supabase.from("clientes_broker").update({ notifications: newNotifList }).eq("id", clientId);
-    
     setClients((prev) => prev.map((c) => (c.id === clientId ? { ...c, notifications: newNotifList } : c)));
     setNewNotice("");
   };
@@ -675,6 +684,9 @@ export default function App() {
           <span>Panel Administrador — Broker Financiero</span>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={fetchClients} disabled={isSyncing} className="text-xs bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold shadow-sm transition-all">
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} /> {isSyncing ? "Sincronizando..." : "Refrescar Datos"}
+          </button>
           <button
             onClick={downloadExcel}
             className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold shadow-sm"
