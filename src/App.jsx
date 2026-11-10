@@ -153,7 +153,20 @@ export default function App() {
       setCurrentUser({ role: "client", id: clientData.id });
     }
   };
+const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!regForm.name || !regForm.email || !regForm.password) return;
+    setErrorMsg("⏳ Creando cuenta segura en la nube...");
 
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: regForm.email.trim().toLowerCase(),
+      password: regForm.password,
+    });
+
+    if (authError) {
+      setErrorMsg("Este correo ya está registrado o la clave es muy débil (Mínimo 6 caracteres).");
+      return;
+    }
     // 2. Crear el expediente en la bóveda
     const newClient = {
       id: "C-" + Math.floor(1000 + Math.random() * 9000),
@@ -289,7 +302,7 @@ export default function App() {
       else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
       else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
 
-      csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
+csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
     });
     
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
