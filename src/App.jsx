@@ -24,6 +24,12 @@ const BROKER_PHONE = "573138231893"; // Con código de país sin el +, ej: 57321
 // CONFIGURACIÓN DE SUPABASE
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// CÓDIGO ESPÍA PARA DIAGNÓSTICO
+console.log("REPORTE DE SEGURIDAD:");
+console.log("1. URL recibida de Vercel:", supabaseUrl);
+console.log("2. KEY recibida de Vercel:", supabaseKey ? "Sí hay una llave oculta" : "Vacío/Undefined");
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const STAGES = [
