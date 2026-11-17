@@ -777,7 +777,7 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
                       Contactar al WhatsApp
                     </a>
                   </div>
-                  <p className="text-sm text-slate-500 mt-1">{activeClient.email} • Solicitud: ${activeClient.amount}</p>
+                  <p className="text-sm text-slate-500 mt-1">{activeClient.email} • Tipo de Crédito: <strong className="text-indigo-700">{activeClient.creditType}</strong> • Solicitud: ${activeClient.amount}</p>
                 </div>
 
                 <div className="mb-4">
@@ -866,20 +866,17 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
                                  </div>
                                )}
                                
-                               <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                                 <button 
-                                   onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "aprobado")}
-                                   className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded text-xs font-bold transition-colors"
-                                 >
-                                   ✅ Aprobar
-                                 </button>
-                                 <button 
-                                   onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "correccion")}
-                                   className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded text-xs font-bold transition-colors"
-                                 >
-                                   ❌ Pedir Corrección
-                                 </button>
-                               </div>
+                               <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3 items-center">
+                              <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "aprobado")} className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">✅ Aprobar</button>
+                              <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "correccion")} className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">❌ Pedir Corrección</button>
+
+                              {files.length < 10 && (
+                                <label className="cursor-pointer bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1 shadow-sm ml-auto">
+                                  <Upload className="w-3.5 h-3.5" /> Subir PDF/Imagen por cliente
+                                  <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(activeClient.id, reqDoc.id, e.target.files[0])} />
+                                </label>
+                              )}
+                            </div>
                             </div>
                           )
                         })}
