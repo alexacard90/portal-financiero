@@ -63,6 +63,7 @@ export default function App() {
   });
   const [newNotice, setNewNotice] = useState("");
   const [adminEditMode, setAdminEditMode] = useState(false);
+const [adminEditForm, setAdminEditForm] = useState({});
 
   // ==========================================
   // MOTOR DE SINCRONIZACIÓN EN LA NUBE (SUPABASE)
@@ -289,6 +290,41 @@ const handleRegister = async (e) => {
     setNewNotice("");
   };
 
+  const handleAdminSave = async (clientId, e) => {
+e.preventDefault();
+// 1. Empaquetar los datos básicos
+const rootData = {
+name: adminEditForm.name,
+cedula: adminEditForm.cedula,
+phone: adminEditForm.phone,
+email: adminEditForm.email,
+creditType: adminEditForm.creditType,
+amount: adminEditForm.amount
+};
+// 2. Empaquetar los datos del perfil financiero
+const profileData = {
+activity: adminEditForm.activity,
+city: adminEditForm.city,
+income: adminEditForm.income,
+expenses: adminEditForm.expenses,
+address: adminEditForm.address,
+contractType: adminEditForm.contractType,
+timeInCompany: adminEditForm.timeInCompany,
+businessType: adminEditForm.businessType,
+pensionFund: adminEditForm.pensionFund,
+refPersonalName: adminEditForm.refPersonalName,
+refPersonalPhone: adminEditForm.refPersonalPhone,
+refFamilyName: adminEditForm.refFamilyName,
+refFamilyPhone: adminEditForm.refFamilyPhone
+};
+// 3. Enviar todo a la bóveda de Supabase
+const { error } = await supabase.from("clientes_broker").update({ ...rootData, profileData }).eq("id", clientId);
+if (error) { alert("❌ Error al guardar: " + error.message); return; }
+
+// 4. Actualizar la pantalla de inmediato sin recargar
+setClients(prev => prev.map(c => c.id === clientId ? { ...c, ...rootData, profileData } : c));
+setAdminEditMode(false);
+};
   const downloadExcel = () => {
     if (clients.length === 0) {
       alert("No hay clientes para descargar.");
