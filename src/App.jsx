@@ -62,6 +62,7 @@ export default function App() {
     contractType: "Término fijo", timeInCompany: "", businessType: "", pensionFund: ""
   });
   const [newNotice, setNewNotice] = useState("");
+  const [adminEditMode, setAdminEditMode] = useState(false);
 
   // ==========================================
   // MOTOR DE SINCRONIZACIÓN EN LA NUBE (SUPABASE)
@@ -795,7 +796,26 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
                 {activeClient.profileData ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <p className="col-span-2 text-sm text-indigo-800 font-bold border-b border-slate-200 pb-1 mb-1">Perfil Financiero</p>
+                      <div className="col-span-2 flex justify-between items-center border-b border-slate-200 pb-1 mb-1">
+                        <p className="text-sm text-indigo-800 font-bold">Perfil Financiero</p>
+                        <button onClick={() => { setProfileForm(activeClient.profileData); setAdminEditMode(true); }} className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200 transition-colors">
+                          ✏️ Editar Datos
+                        </button>
+                      </div>
+
+                      {adminEditMode && (
+                        <div className="col-span-2 bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-2 space-y-3 shadow-inner">
+                          <div className="flex justify-between items-center mb-2"><p className="font-bold text-indigo-900">Modo Edición Administradora</p><button onClick={() => setAdminEditMode(false)} className="text-red-600 font-bold text-xs hover:underline">Cancelar</button></div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div><label className="font-bold text-slate-700">Actividad</label><select value={profileForm.activity} onChange={e => setProfileForm({...profileForm, activity: e.target.value})} className="w-full border p-1 rounded"><option>Empleado</option><option>Independiente</option><option>Pensionado</option></select></div>
+                            <div><label className="font-bold text-slate-700">Ciudad</label><input type="text" value={profileForm.city} onChange={e => setProfileForm({...profileForm, city: e.target.value})} className="w-full border p-1 rounded"/></div>
+                            <div><label className="font-bold text-slate-700">Ingresos</label><input type="text" value={profileForm.income} onChange={e => setProfileForm({...profileForm, income: e.target.value})} className="w-full border p-1 rounded"/></div>
+                            <div><label className="font-bold text-slate-700">Gastos</label><input type="text" value={profileForm.expenses} onChange={e => setProfileForm({...profileForm, expenses: e.target.value})} className="w-full border p-1 rounded"/></div>
+                            <div className="col-span-2"><label className="font-bold text-slate-700">Dirección Exacta</label><input type="text" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} className="w-full border p-1 rounded"/></div>
+                          </div>
+                          <button onClick={(e) => { handleSaveProfile(activeClient.id, e); setAdminEditMode(false); }} className="w-full mt-2 bg-indigo-600 text-white font-bold py-2 rounded shadow-sm hover:bg-indigo-700">Guardar Cambios en la Nube</button>
+                        </div>
+                      )}
                       <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
                       <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
                       
