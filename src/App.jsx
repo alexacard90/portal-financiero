@@ -393,7 +393,7 @@ setAdminEditMode(false);
       alert("No hay clientes para descargar.");
       return;
     }
-    let csv = "ID,Nombre,Cedula,Origen Campaña,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
+    let csv = "ID,Fecha Registro,Nombre,Cedula,Origen Campaña,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
     
     clients.forEach(c => {
       const p = c.profileData || {};
@@ -402,7 +402,8 @@ setAdminEditMode(false);
       else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
       else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
 
-csv += `${c.id},"${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}","${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
+const fechaRegistro = c.created_at ? new Date(c.created_at).toLocaleString("es-CO", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: true }).replace(",", "") : "Sin fecha";
+      csv += `${c.id},"${fechaRegistro}","${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}","${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
     });
     
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
