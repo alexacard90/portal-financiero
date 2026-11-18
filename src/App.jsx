@@ -314,6 +314,22 @@ const handleRegister = async (e) => {
     }
   };
 
+  const toggleClientVerified = async (clientId, currentStatus) => {
+    const newStatus = !currentStatus;
+    setClients((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, admin_verified: newStatus } : c))
+    );
+    const { error } = await supabase
+      .from("clientes_broker")
+      .update({ admin_verified: newStatus })
+      .eq("id", clientId);
+    if (error) {
+      alert("❌ Error al guardar el chulito en la nube: " + error.message);
+      setClients((prev) =>
+        prev.map((c) => (c.id === clientId ? { ...c, admin_verified: currentStatus } : c))
+      );
+    }
+  };
   const updateClientStage = async (clientId, newStage) => {
     const { error } = await supabase.from("clientes_broker").update({ stage: Number(newStage) }).eq("id", clientId);
     if (!error) {
@@ -900,24 +916,54 @@ const fechaRegistro = c.created_at ? new Date(c.created_at).toLocaleString("es-C
           <p className="text-sm text-slate-500 p-2 bg-slate-50 rounded-lg border border-slate-200">No hay clientes en esta etapa del embudo.</p>
        )}
        {clients.filter(c => c.stage === filterStage).map((c) => (
-            <button
+            <div
               key={c.id}
               onClick={() => setSelectedClientId(c.id)}
-              className={`w-full text-left p-3 rounded-xl border transition ${
-                activeClient && c.id === activeClient.id ? "bg-indigo-50 border-indigo-400" : "border-slate-200 hover:bg-slate-50"
+              className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
+                activeClient && c.id === activeClient.id
+                  ? "bg-indigo-50 border-indigo-400"
+                  : c.admin_verified
+                  ? "bg-emerald-50/80 border-emerald-300 hover:bg-emerald-50"
+                  : "border-slate-200 hover:bg-slate-50"
               }`}
             >
-              <div className="font-bold text-sm text-slate-800 flex justify-between items-center gap-1">
-                <span>{c.name}</span>
-                {c.campaign_origin && (
-                  <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold">
-                    {c.campaign_origin}
-                  </span>
-                )}
+              <div className="flex items-start gap-2.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleClientVerified(c.id, !!c.admin_verified);
+                  }}
+                  title={c.admin_verified ? "Quitar marca de verificado" : "Marcar cliente como verificado"}
+                  className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                    c.admin_verified
+                      ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
+                      : "bg-white border-slate-300 hover:border-emerald-500"
+                  }`}
+                >
+                  {c.admin_verified && <CheckCircle2 className="w-3.5 h-3.5" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-slate-800 flex justify-between items-center gap-1">
+                    <span className="truncate">{c.name}</span>
+                    {c.campaign_origin && (
+                      <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold shrink-0">
+                        {c.campaign_origin}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500">{c.creditType} • ${c.amount}</div>
+                  <div className="flex justify-between items-center mt-1 gap-1">
+                    <span className="text-xs font-semibold text-indigo-600">Etapa: {STAGES[c.stage - 1]}</span>
+                    {c.admin_verified && (
+                      <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3 h-3" /> Verificado
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-slate-500">{c.creditType} • ${c.amount}</div>
-              <div className="text-xs font-semibold text-indigo-600 mt-1">Etapa: {STAGES[c.stage - 1]}</div>
-            </button>
+            </div>
           ))}
         </div>
 
