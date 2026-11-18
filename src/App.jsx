@@ -64,6 +64,8 @@ export default function App() {
   const [newNotice, setNewNotice] = useState("");
   const [adminEditMode, setAdminEditMode] = useState(false);
 const [adminEditForm, setAdminEditForm] = useState({});
+const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
 
   // ==========================================
   // MOTOR DE SINCRONIZACIÓN EN LA NUBE (SUPABASE)
@@ -89,9 +91,57 @@ const [adminEditForm, setAdminEditForm] = useState({});
     }
   };
 
-  // Descargar los datos al abrir la página web
+  // Descargar datos y detectar ingresos por Enlace Mágico o Cambio de Contraseña
   useEffect(() => {
     fetchClients();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY" || window.location.hash.includes("type=recovery")) {
+        setIsResettingPassword(true);
+        return;
+      }
+
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+        const userEmail = session.user.email?.toLowerCase();
+
+        if (userEmail === BROKER_EMAIL.toLowerCase()) {
+          setCurrentUser({ role: "broker", email: BROKER_EMAIL, name: "Panel Broker" });
+          fetchClients();
+          return;
+        }
+
+        const { data: clientData } = await supabase
+          .from("clientes_broker")
+          .select("*")
+          .eq("auth_id", session.user.id)
+          .single();
+
+        if (clientData) {
+          if (clientData.stage >= 5) {
+            setErrorMsg("Tu trámite ha finalizado. Ya no tienes acceso activo al portal.");
+            await supabase.auth.signOut();
+          } else {
+            const cleanClient = {
+              ...clientData,
+              documents: clientData.documents || [],
+              notifications: clientData.notifications || []
+            };
+            setClients((prev) => {
+              const exists = prev.some((c) => c.id === cleanClient.id);
+              return exists
+                ? prev.map((c) => (c.id === cleanClient.id ? cleanClient : c))
+                : [...prev, cleanClient];
+            });
+            setErrorMsg("");
+            setCurrentUser({ role: "client", id: cleanClient.id });
+          }
+        }
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const getRequiredDocs = (activity) => {
@@ -365,6 +415,56 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}",
     document.body.removeChild(link);
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (newPasswordInput.length < 6) {
+      setErrorMsg("La nueva contraseña debe tener mínimo 6 caracteres.");
+      return;
+    }
+    setErrorMsg("⏳ Guardando tu nueva contraseña...");
+    const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
+    if (error) {
+      setErrorMsg("❌ Error al cambiar la contraseña: " + error.message);
+      return;
+    }
+    alert("✅ ¡Contraseña actualizada con éxito! Ya puedes ingresar con tu nueva clave.");
+    setNewPasswordInput("");
+    setErrorMsg("");
+    setIsResettingPassword(false);
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+  };
+
+  if (isResettingPassword) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 space-y-4">
+          <div className="flex items-center gap-2 text-indigo-700 font-bold text-lg">
+            <ShieldCheck className="w-7 h-7" />
+            <span>Crear Nueva Contraseña</span>
+          </div>
+          <p className="text-xs text-slate-600">
+            Escribe tu nueva contraseña para volver a ingresar al portal financiero (mínimo 6 caracteres).
+          </p>
+          {errorMsg && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg">{errorMsg}</div>}
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <input
+              type="password"
+              required
+              minLength={6}
+              placeholder="Nueva contraseña (mínimo 6 caracteres)"
+              value={newPasswordInput}
+              onChange={(e) => setNewPasswordInput(e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm">
+              Guardar Nueva Contraseña
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -571,7 +671,7 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}",
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-600">{client.name}</span>
             <button
-              onClick={() => setCurrentUser(null)}
+              onClick={async () => { await supabase.auth.signOut(); setCurrentUser(null); }}
               className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg"
             >
               <LogOut className="w-4 h-4" /> Salir
@@ -771,7 +871,7 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}",
             📥 Descargar Base de Datos
           </button>
           <button
-            onClick={() => setCurrentUser(null)}
+            onClick={async () => { await supabase.auth.signOut(); setCurrentUser(null); }}
             className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1"
           >
             <LogOut className="w-4 h-4" /> Cerrar sesión
