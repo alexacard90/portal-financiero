@@ -804,126 +804,166 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
               <div className="w-full flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full overflow-y-auto md:col-span-2">
                 <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Detalles del Cliente</h3>
                 
-                <div className="mb-4">
-                  <p className="text-lg font-bold text-indigo-900">{activeClient.name}</p>
-                  <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
-                    <span>Cédula: {activeClient.cedula}</span> • 
-                    <span>Celular: {activeClient.phone}</span>
-                    <a href={`https://wa.me/${activeClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1 shadow-sm transition-colors">
-                      Contactar al WhatsApp
-                    </a>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-1">{activeClient.email} • Tipo de Crédito: <strong className="text-indigo-700">{activeClient.creditType}</strong> • Solicitud: ${activeClient.amount}</p>
-                </div>
+                {/* --- INICIO ZONA DE EDICIÓN TOTAL --- */}
+                {!adminEditMode ? (
+                  <>
+                    <div className="mb-4 flex justify-between items-start">
+                      <div>
+                        <p className="text-lg font-bold text-indigo-900">{activeClient.name}</p>
+                        <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
+                          <span>Cédula: {activeClient.cedula}</span> • 
+                          <span>Celular: {activeClient.phone}</span>
+                          <a href={`https://wa.me/${activeClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1 shadow-sm transition-colors">
+                            Contactar al WhatsApp
+                          </a>
+                        </div>
+                        <p className="text-sm text-slate-500 mt-1">{activeClient.email} • Tipo de Crédito: <strong className="text-indigo-700">{activeClient.creditType}</strong> • Solicitud: ${activeClient.amount}</p>
+                      </div>
+                      
+                      <button onClick={() => {
+                        const p = activeClient.profileData || {};
+                        setAdminEditForm({
+                          name: activeClient.name, cedula: activeClient.cedula, phone: activeClient.phone, email: activeClient.email, creditType: activeClient.creditType, amount: activeClient.amount,
+                          activity: p.activity || "Empleado", city: p.city || "", income: p.income || "", expenses: p.expenses || "", address: p.address || "",
+                          contractType: p.contractType || "Término fijo", timeInCompany: p.timeInCompany || "", businessType: p.businessType || "", pensionFund: p.pensionFund || "",
+                          refPersonalName: p.refPersonalName || "", refPersonalPhone: p.refPersonalPhone || "", refFamilyName: p.refFamilyName || "", refFamilyPhone: p.refFamilyPhone || ""
+                        });
+                        setAdminEditMode(true);
+                      }} className="bg-amber-100 text-amber-800 border border-amber-300 px-4 py-2 rounded-xl text-xs font-bold hover:bg-amber-200 shadow-sm flex items-center gap-1 transition-colors">
+                        ✏️ MODIFICAR TODOS LOS DATOS
+                      </button>
+                    </div>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Cambiar Etapa del Trámite:</label>
-                  <select
-                    value={activeClient.stage}
-                    onChange={(e) => updateClientStage(activeClient.id, e.target.value)}
-                    className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-indigo-700 w-full"
-                  >
-                    {STAGES.map((s, i) => (
-                      <option key={s} value={i + 1}>Etapa {i + 1}: {s}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Cambiar Etapa del Trámite:</label>
+                      <select
+                        value={activeClient.stage}
+                        onChange={(e) => updateClientStage(activeClient.id, e.target.value)}
+                        className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-indigo-700 w-full"
+                      >
+                        {STAGES.map((s, i) => (
+                          <option key={s} value={i + 1}>Etapa {i + 1}: {s}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                {activeClient.profileData ? (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div className="col-span-2 flex justify-between items-center border-b border-slate-200 pb-1 mb-1">
-                        <p className="text-sm text-indigo-800 font-bold">Perfil Financiero</p>
-                        <button onClick={() => { setProfileForm(activeClient.profileData); setAdminEditMode(true); }} className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200 transition-colors">
-                          ✏️ Editar Datos
+                    {activeClient.profileData ? (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                          <p className="col-span-2 text-sm text-indigo-800 font-bold border-b border-slate-200 pb-1 mb-1">Perfil Financiero</p>
+                          <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
+                          <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
+                          {activeClient.profileData.activity === "Empleado" && (
+                             <>
+                               <p><strong>Contrato:</strong> {activeClient.profileData.contractType}</p>
+                               <p><strong>Antigüedad:</strong> {activeClient.profileData.timeInCompany} años</p>
+                             </>
+                          )}
+                          {activeClient.profileData.activity === "Independiente" && (
+                             <p className="col-span-2"><strong>Negocio:</strong> {activeClient.profileData.businessType}</p>
+                          )}
+                          {activeClient.profileData.activity === "Pensionado" && (
+                             <p className="col-span-2"><strong>Fondo:</strong> {activeClient.profileData.pensionFund}</p>
+                          )}
+                          <p><strong>Ingresos:</strong> ${activeClient.profileData.income}</p>
+                          <p><strong>Gastos:</strong> ${activeClient.profileData.expenses}</p>
+                          <p className="col-span-2"><strong>Dirección:</strong> {activeClient.profileData.address}</p>
+                          <p className="col-span-2 text-indigo-700 border-t border-slate-200 pt-2 mt-1"><strong>Ref. Personal:</strong> {activeClient.profileData.refPersonalName} — Tel: {activeClient.profileData.refPersonalPhone}</p>
+                          <p className="col-span-2 text-indigo-700"><strong>Ref. Familiar:</strong> {activeClient.profileData.refFamilyName} — Tel: {activeClient.profileData.refFamilyPhone}</p>
+                        </div>
+
+                        <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                          <h4 className="font-bold text-indigo-900 text-sm mb-4">Revisión de Documentos</h4>
+                          <div className="space-y-4">
+                            {getRequiredDocs(activeClient.profileData.activity).map(reqDoc => {
+                              const docData = (activeClient.documents || []).find(d => d.id === reqDoc.id);
+                              const files = docData?.uploadedFiles || [];
+                              const status = docData?.status || "pendiente";
+                              return (
+                                <div key={reqDoc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                                   <p className="text-sm font-bold text-slate-800 mb-1">{reqDoc.title}</p>
+                                   <p className="text-xs text-slate-500 mb-3">Estado: <span className={`font-bold uppercase ${status === 'aprobado' ? 'text-emerald-600' : status === 'correccion' ? 'text-rose-600' : 'text-amber-600'}`}>{status}</span></p>
+                                   {files.length === 0 ? (
+                                     <p className="text-xs text-rose-500 font-semibold mb-3">Pendiente por cargar</p>
+                                   ) : (
+                                     <div className="flex flex-wrap gap-2 mb-4">
+                                       {files.map((f, i) => (<a key={i} href={f.url} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-200 shadow-sm flex items-center gap-1">📄 Ver Archivo {i + 1}</a>))}
+                                     </div>
+                                   )}
+                                   <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3 items-center">
+                                     <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "aprobado")} className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">✅ Aprobar</button>
+                                     <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "correccion")} className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">❌ Pedir Corrección</button>
+                                     
+                                     {files.length < 10 && (
+                                       <label className="cursor-pointer bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1 shadow-sm ml-auto">
+                                         <Upload className="w-3.5 h-3.5" /> Subir archivo por el cliente
+                                         <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(activeClient.id, reqDoc.id, e.target.files[0])} />
+                                       </label>
+                                     )}
+                                   </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-amber-50 text-amber-800 rounded-xl text-sm font-semibold border border-amber-200 my-4 flex flex-col gap-3">
+                        <p>⚠️ El cliente aún no ha guardado su perfil financiero.</p>
+                        <button onClick={() => {
+                          setAdminEditForm({
+                            name: activeClient.name, cedula: activeClient.cedula, phone: activeClient.phone, email: activeClient.email, creditType: activeClient.creditType, amount: activeClient.amount,
+                            activity: "Empleado", city: "", income: "", expenses: "", address: "",
+                            contractType: "Término fijo", timeInCompany: "", businessType: "", pensionFund: "",
+                            refPersonalName: "", refPersonalPhone: "", refFamilyName: "", refFamilyPhone: ""
+                          });
+                          setAdminEditMode(true);
+                        }} className="bg-amber-200 text-amber-900 px-4 py-2 rounded-lg font-bold w-fit hover:bg-amber-300 transition-colors text-xs shadow-sm">
+                          Crear Perfil Manualmente
                         </button>
                       </div>
-
-                      {adminEditMode && (
-                        <div className="col-span-2 bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-2 space-y-3 shadow-inner">
-                          <div className="flex justify-between items-center mb-2"><p className="font-bold text-indigo-900">Modo Edición Administradora</p><button onClick={() => setAdminEditMode(false)} className="text-red-600 font-bold text-xs hover:underline">Cancelar</button></div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div><label className="font-bold text-slate-700">Actividad</label><select value={profileForm.activity} onChange={e => setProfileForm({...profileForm, activity: e.target.value})} className="w-full border p-1 rounded"><option>Empleado</option><option>Independiente</option><option>Pensionado</option></select></div>
-                            <div><label className="font-bold text-slate-700">Ciudad</label><input type="text" value={profileForm.city} onChange={e => setProfileForm({...profileForm, city: e.target.value})} className="w-full border p-1 rounded"/></div>
-                            <div><label className="font-bold text-slate-700">Ingresos</label><input type="text" value={profileForm.income} onChange={e => setProfileForm({...profileForm, income: e.target.value})} className="w-full border p-1 rounded"/></div>
-                            <div><label className="font-bold text-slate-700">Gastos</label><input type="text" value={profileForm.expenses} onChange={e => setProfileForm({...profileForm, expenses: e.target.value})} className="w-full border p-1 rounded"/></div>
-                            <div className="col-span-2"><label className="font-bold text-slate-700">Dirección Exacta</label><input type="text" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} className="w-full border p-1 rounded"/></div>
-                          </div>
-                          <button onClick={(e) => { handleSaveProfile(activeClient.id, e); setAdminEditMode(false); }} className="w-full mt-2 bg-indigo-600 text-white font-bold py-2 rounded shadow-sm hover:bg-indigo-700">Guardar Cambios en la Nube</button>
-                        </div>
-                      )}
-                      <p><strong>Actividad:</strong> {activeClient.profileData.activity}</p>
-                      <p><strong>Ciudad:</strong> {activeClient.profileData.city}</p>
-                      
-                      {activeClient.profileData.activity === "Empleado" && (
-                         <>
-                           <p><strong>Contrato:</strong> {activeClient.profileData.contractType}</p>
-                           <p><strong>Antigüedad:</strong> {activeClient.profileData.timeInCompany} años</p>
-                         </>
-                      )}
-                      {activeClient.profileData.activity === "Independiente" && (
-                         <p className="col-span-2"><strong>Negocio:</strong> {activeClient.profileData.businessType}</p>
-                      )}
-                      {activeClient.profileData.activity === "Pensionado" && (
-                         <p className="col-span-2"><strong>Fondo:</strong> {activeClient.profileData.pensionFund}</p>
-                      )}
-
-                      <p><strong>Ingresos:</strong> ${activeClient.profileData.income}</p>
-                      <p><strong>Gastos:</strong> ${activeClient.profileData.expenses}</p>
-                      <p className="col-span-2"><strong>Dirección:</strong> {activeClient.profileData.address}</p>
-                      <p className="col-span-2 text-indigo-700 border-t border-slate-200 pt-2 mt-1"><strong>Ref. Personal:</strong> {activeClient.profileData.refPersonalName} — Tel: {activeClient.profileData.refPersonalPhone}</p>
-                      <p className="col-span-2 text-indigo-700"><strong>Ref. Familiar:</strong> {activeClient.profileData.refFamilyName} — Tel: {activeClient.profileData.refFamilyPhone}</p>
+                    )}
+                  </>
+                ) : (
+                  <form onSubmit={(e) => handleAdminSave(activeClient.id, e)} className="bg-amber-50 p-5 rounded-xl border border-amber-300 mb-6 shadow-inner space-y-4">
+                    <div className="flex justify-between items-center border-b border-amber-200 pb-2">
+                      <h4 className="font-bold text-amber-900 text-lg">✏️ Modo Edición Total</h4>
+                      <button type="button" onClick={() => setAdminEditMode(false)} className="text-rose-600 font-bold hover:underline text-sm">❌ Cancelar</button>
                     </div>
-
-                    <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                      <h4 className="font-bold text-indigo-900 text-sm mb-4">Revisión de Documentos</h4>
-                      <div className="space-y-4">
-                        {getRequiredDocs(activeClient.profileData.activity).map(reqDoc => {
-                          const docData = (activeClient.documents || []).find(d => d.id === reqDoc.id);
-                          const files = docData?.uploadedFiles || [];
-                          const status = docData?.status || "pendiente";
-                          
-                          return (
-                            <div key={reqDoc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                               <p className="text-sm font-bold text-slate-800 mb-1">{reqDoc.title}</p>
-                               <p className="text-xs text-slate-500 mb-3">
-                                 Estado: <span className={`font-bold uppercase ${status === 'aprobado' ? 'text-emerald-600' : status === 'correccion' ? 'text-rose-600' : 'text-amber-600'}`}>{status}</span>
-                               </p>
-                               
-                               {files.length === 0 ? (
-                                 <p className="text-xs text-rose-500 font-semibold mb-3">Pendiente por cargar</p>
-                               ) : (
-                                 <div className="flex flex-wrap gap-2 mb-4">
-                                   {files.map((f, i) => (
-                                     <a key={i} href={f.url} target="_blank" rel="noreferrer" className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-200 shadow-sm flex items-center gap-1">
-                                       📄 Ver Archivo {i + 1}
-                                     </a>
-                                   ))}
-                                 </div>
-                               )}
-                               
-                               <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3 items-center">
-                              <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "aprobado")} className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">✅ Aprobar</button>
-                              <button onClick={() => updateDocStatus(activeClient.id, reqDoc.id, "correccion")} className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded text-xs font-bold transition-colors">❌ Pedir Corrección</button>
-
-                              {files.length < 10 && (
-                                <label className="cursor-pointer bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1 shadow-sm ml-auto">
-                                  <Upload className="w-3.5 h-3.5" /> Subir PDF/Imagen por cliente
-                                  <input type="file" accept=".pdf, .jpg, .jpeg, .png, .heic, .doc, .docx" className="hidden" onChange={(e) => handleFileUpload(activeClient.id, reqDoc.id, e.target.files[0])} />
-                                </label>
-                              )}
-                            </div>
-                            </div>
-                          )
-                        })}
+                    
+                    <div>
+                      <p className="font-bold text-slate-800 text-xs uppercase mb-2">1. Datos Básicos y Contacto</p>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div><label className="font-bold text-slate-700">Nombre Completo</label><input type="text" required value={adminEditForm.name} onChange={e => setAdminEditForm({...adminEditForm, name: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Cédula</label><input type="text" required value={adminEditForm.cedula} onChange={e => setAdminEditForm({...adminEditForm, cedula: e.target.value.replace(/\D/g,"")})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Correo Electrónico</label><input type="email" required value={adminEditForm.email} onChange={e => setAdminEditForm({...adminEditForm, email: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Celular</label><input type="text" required value={adminEditForm.phone} onChange={e => setAdminEditForm({...adminEditForm, phone: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Tipo de Crédito</label><select value={adminEditForm.creditType} onChange={e => setAdminEditForm({...adminEditForm, creditType: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"><option>Libre Inversión</option><option>Crédito Hipotecario</option><option>Compra de Cartera</option><option>Crédito Vehículo</option></select></div>
+                        <div><label className="font-bold text-slate-700">Monto Solicitado</label><input type="text" required value={adminEditForm.amount} onChange={e => setAdminEditForm({...adminEditForm, amount: formatMoney(e.target.value)})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-amber-50 text-amber-800 rounded-xl text-sm font-semibold border border-amber-200 my-4">
-                    ⚠️ El cliente aún no ha guardado su perfil financiero.
-                  </div>
+
+                    <div className="pt-2 border-t border-amber-200">
+                      <p className="font-bold text-slate-800 text-xs uppercase mb-2">2. Perfil Financiero</p>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div><label className="font-bold text-slate-700">Actividad</label><select value={adminEditForm.activity} onChange={e => setAdminEditForm({...adminEditForm, activity: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"><option>Empleado</option><option>Independiente</option><option>Pensionado</option></select></div>
+                        <div><label className="font-bold text-slate-700">Ciudad</label><input type="text" value={adminEditForm.city} onChange={e => setAdminEditForm({...adminEditForm, city: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        {adminEditForm.activity === "Empleado" && (<><div><label className="font-bold text-slate-700">Tipo contrato</label><select value={adminEditForm.contractType} onChange={e => setAdminEditForm({...adminEditForm, contractType: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"><option>Término fijo</option><option>Indefinido</option><option>Obra labor</option></select></div><div><label className="font-bold text-slate-700">Antigüedad (años)</label><input type="text" value={adminEditForm.timeInCompany} onChange={e => setAdminEditForm({...adminEditForm, timeInCompany: e.target.value.replace(/\D/g,"")})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div></>)}
+                        {adminEditForm.activity === "Independiente" && (<div className="col-span-2"><label className="font-bold text-slate-700">Negocio</label><input type="text" value={adminEditForm.businessType} onChange={e => setAdminEditForm({...adminEditForm, businessType: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>)}
+                        {adminEditForm.activity === "Pensionado" && (<div className="col-span-2"><label className="font-bold text-slate-700">Fondo Pensión</label><input type="text" value={adminEditForm.pensionFund} onChange={e => setAdminEditForm({...adminEditForm, pensionFund: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>)}
+                        <div><label className="font-bold text-slate-700">Ingresos Mensuales</label><input type="text" value={adminEditForm.income} onChange={e => setAdminEditForm({...adminEditForm, income: formatMoney(e.target.value)})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Gastos Mensuales</label><input type="text" value={adminEditForm.expenses} onChange={e => setAdminEditForm({...adminEditForm, expenses: formatMoney(e.target.value)})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div className="col-span-2"><label className="font-bold text-slate-700">Dirección Exacta</label><input type="text" value={adminEditForm.address} onChange={e => setAdminEditForm({...adminEditForm, address: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Ref. Personal (Nombre)</label><input type="text" value={adminEditForm.refPersonalName} onChange={e => setAdminEditForm({...adminEditForm, refPersonalName: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Teléfono Ref. Personal</label><input type="text" value={adminEditForm.refPersonalPhone} onChange={e => setAdminEditForm({...adminEditForm, refPersonalPhone: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Ref. Familiar (Nombre)</label><input type="text" value={adminEditForm.refFamilyName} onChange={e => setAdminEditForm({...adminEditForm, refFamilyName: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                        <div><label className="font-bold text-slate-700">Teléfono Ref. Familiar</label><input type="text" value={adminEditForm.refFamilyPhone} onChange={e => setAdminEditForm({...adminEditForm, refFamilyPhone: e.target.value})} className="w-full border border-slate-300 p-2 rounded bg-white"/></div>
+                      </div>
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-sm transition-colors text-sm uppercase mt-4">✅ Guardar todos los cambios en la Nube</button>
+                  </form>
                 )}
+                {/* --- FIN ZONA DE EDICIÓN TOTAL --- */}
 
                 <div className="space-y-2 pt-4 mt-auto border-t border-slate-200">
                   <h4 className="font-bold text-sm text-slate-700">Enviar Actualización al Cliente</h4>
