@@ -271,6 +271,19 @@ const handleRegister = async (e) => {
     }
   };
 
+  const updateClientCampaign = async (clientId, newCampaign) => {
+    const { error } = await supabase
+      .from("clientes_broker")
+      .update({ campaign_origin: newCampaign })
+      .eq("id", clientId);
+    if (error) {
+      alert("Error al guardar la campaña: " + error.message);
+      return;
+    }
+    setClients((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, campaign_origin: newCampaign } : c))
+    );
+  };
   const updateDocStatus = async (clientId, docId, status) => {
     const feedback = status === "rechazado" || status === "correccion" ? prompt("Indica al cliente el motivo para corregir el documento:") || "Por favor vuelve a subir un archivo legible." : "";
     const client = clients.find(c => c.id === clientId);
@@ -330,7 +343,7 @@ setAdminEditMode(false);
       alert("No hay clientes para descargar.");
       return;
     }
-    let csv = "ID,Nombre,Cedula,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
+    let csv = "ID,Nombre,Cedula,Origen Campaña,Celular,Correo,Tipo Credito,Monto Solicitado,Etapa,Actividad,Detalle Actividad,Ingresos,Gastos,Ciudad,Direccion,Ref Personal,Ref Familiar\n";
     
     clients.forEach(c => {
       const p = c.profileData || {};
@@ -339,7 +352,7 @@ setAdminEditMode(false);
       else if (p.activity === "Independiente") extra = `Negocio: ${p.businessType}`;
       else if (p.activity === "Pensionado") extra = `Fondo: ${p.pensionFund}`;
 
-csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
+csv += `${c.id},"${c.name}",${c.cedula},"${c.campaign_origin || 'Sin asignar'}","${c.phone}","${c.email}","${c.creditType}","${c.amount}",${STAGES[c.stage - 1]},"${p.activity || ''}","${extra}","${p.income || ''}","${p.expenses || ''}","${p.city || ''}","${p.address || ''}","${p.refPersonalName || ''} - Tel: ${p.refPersonalPhone || ''}","${p.refFamilyName || ''} - Tel: ${p.refFamilyPhone || ''}"\n`;
     });
     
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
@@ -793,7 +806,14 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
                 activeClient && c.id === activeClient.id ? "bg-indigo-50 border-indigo-400" : "border-slate-200 hover:bg-slate-50"
               }`}
             >
-              <div className="font-bold text-sm text-slate-800">{c.name}</div>
+              <div className="font-bold text-sm text-slate-800 flex justify-between items-center gap-1">
+                <span>{c.name}</span>
+                {c.campaign_origin && (
+                  <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold">
+                    {c.campaign_origin}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-slate-500">{c.creditType} • ${c.amount}</div>
               <div className="text-xs font-semibold text-indigo-600 mt-1">Etapa: {STAGES[c.stage - 1]}</div>
             </button>
@@ -809,7 +829,18 @@ csv += `${c.id},"${c.name}",${c.cedula},"${c.phone}","${c.email}","${c.creditTyp
                   <>
                     <div className="mb-4 flex justify-between items-start">
                       <div>
-                        <p className="text-lg font-bold text-indigo-900">{activeClient.name}</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-lg font-bold text-indigo-900">{activeClient.name}</p>
+                          <select
+                            value={activeClient.campaign_origin || ""}
+                            onChange={(e) => updateClientCampaign(activeClient.id, e.target.value)}
+                            className="border border-purple-300 bg-purple-50 text-purple-900 text-xs font-bold rounded-lg px-2.5 py-1 cursor-pointer outline-none shadow-sm"
+                          >
+                            <option value="">📌 Campaña: Sin asignar</option>
+                            <option value="Colombia Premium">⭐ Campaña: Colombia Premium</option>
+                            <option value="Negocios">💼 Campaña: Negocios</option>
+                          </select>
+                        </div>
                         <div className="text-sm font-semibold text-slate-700 mt-1 flex flex-wrap items-center gap-2">
                           <span>Cédula: {activeClient.cedula}</span> • 
                           <span>Celular: {activeClient.phone}</span>
